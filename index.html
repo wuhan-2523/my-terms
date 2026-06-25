@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>中英术语库 · 多层级管理 (V5.0)</title>
+    <title>中英术语库 · 多层级管理 (V5.1 修复数据恢复与按钮逻辑)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #f0f4fb; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px 40px; margin: 0; }
@@ -231,26 +231,75 @@
     }
 
     // ================== Tree 数据架构 ==================
-    // treeNode: { id: string, type: 'folder'|'bank', parentId: string|null, name: string }
     const genId = () => 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
 
     async function getTree(store) { return await dbGet(store, '_tree_') || []; }
     async function saveTree(store, tree) { await dbSet(store, '_tree_', tree); }
 
-    // 平滑迁移旧版 flat 数组 (V4及以前)
-    async function migrateFlatToTree(store) {
-        const oldNames = await dbGet(store, '_names_');
-        if (oldNames && Array.isArray(oldNames)) {
-            let tree = [];
-            for (let name of oldNames) {
-                const newId = genId();
-                tree.push({ id: newId, type: 'bank', parentId: null, name: name });
-                const data = await dbGet(store, name);
-                if (data) await dbSet(store, newId, data);
-                await dbDelete(store, name);
+    // 修复：从真正的旧版 V4 数据库恢复数据！
+    async function recoverDataFromV4() {
+        if (localStorage.getItem('v4_to_v5_recovered') === 'done') return;
+
+        // 尝试打开 V4 DB
+        const v4DB = await new Promise((resolve) => {
+            const req = indexedDB.open('TerminologyDB_V4', 2);
+            req.onsuccess = (e) => resolve(e.target.result);
+            req.onerror = () => resolve(null);
+            req.onupgradeneeded = (e) => { e.target.transaction.abort(); resolve(null); }; // 如果不存在会触发 abort
+        });
+
+        if (!v4DB) {
+            localStorage.setItem('v4_to_v5_recovered', 'done');
+            return;
+        }
+
+        const getV4 = (store, key) => new Promise((resolve) => {
+            try {
+                const tx = v4DB.transaction(store, 'readonly');
+                const req = tx.objectStore(store).get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve(null);
+            } catch(e) { resolve(null); }
+        });
+
+        let recoveredCount = 0;
+
+        // 恢复词库 (包括你的“常用汉字映射”)
+        const wbNames = await getV4(STORE_WORD_BANKS, '_names_');
+        if (wbNames && Array.isArray(wbNames)) {
+            const tree = await getTree(STORE_WORD_BANKS);
+            for (const name of wbNames) {
+                const data = await getV4(STORE_WORD_BANKS, name);
+                if (data && !tree.some(n => n.name === name)) {
+                    const newId = genId();
+                    tree.push({ id: newId, type: 'bank', parentId: null, name: name });
+                    await dbSet(STORE_WORD_BANKS, newId, data);
+                    recoveredCount++;
+                }
             }
-            await saveTree(store, tree);
-            await dbDelete(store, '_names_');
+            await saveTree(STORE_WORD_BANKS, tree);
+        }
+
+        // 恢复卡库
+        const cdNames = await getV4(STORE_CARD_DECKS, '_names_');
+        if (cdNames && Array.isArray(cdNames)) {
+            const tree = await getTree(STORE_CARD_DECKS);
+            for (const name of cdNames) {
+                const data = await getV4(STORE_CARD_DECKS, name);
+                if (data && !tree.some(n => n.name === name)) {
+                    const newId = genId();
+                    tree.push({ id: newId, type: 'bank', parentId: null, name: name });
+                    await dbSet(STORE_CARD_DECKS, newId, data);
+                    recoveredCount++;
+                }
+            }
+            await saveTree(STORE_CARD_DECKS, tree);
+        }
+
+        v4DB.close();
+        localStorage.setItem('v4_to_v5_recovered', 'done');
+        if (recoveredCount > 0) {
+            setTimeout(() => showToast(`🎉 成功恢复了 ${recoveredCount} 个旧版词库/卡库数据！`, 4000), 1000);
         }
     }
 
@@ -264,7 +313,7 @@
     }
 
     // UI Tools
-    function showToast(msg, dur=2000) {
+    function showToast(msg, dur=2500) {
         const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
         document.body.appendChild(t);
         setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, dur);
@@ -344,14 +393,12 @@
 
     function getToday() { const d = new Date(); return d.toISOString().slice(0,10); }
 
-    // Settings
     async function loadSettings() {
         const s = await dbGet(STORE_SETTINGS, 'config') || {};
         dailyNewCardsLimit = s.dailyLimit || 20;
         document.getElementById('dailyLimitInput').value = dailyNewCardsLimit;
     }
 
-    // 核心跨库同步方法 (需求 4)
     async function syncTermUpdateToDecks(oldCn, newCn, newEn) {
         const deckTree = await getTree(STORE_CARD_DECKS);
         const deckIds = deckTree.filter(n => n.type === 'bank').map(n => n.id);
@@ -376,7 +423,6 @@
         }
         if(syncCount > 0) showToast(`已同步更新 ${syncCount} 个记忆卡库`);
     }
-
 
     // ==================== 提取页 ====================
     let currentExtractPairs = [];
@@ -454,12 +500,19 @@
         const sel = document.getElementById('wordBankSelect');
         sel.innerHTML = buildTreeSelectHTML(tree) || '<option value="">无词库，请新建</option>';
         if (tree.length > 0 && !currentBankNodeId) currentBankNodeId = tree[0].id;
-        if (currentBankNodeId) sel.value = currentBankNodeId;
+        if (currentBankNodeId && tree.some(n => n.id === currentBankNodeId)) {
+            sel.value = currentBankNodeId;
+        } else {
+            currentBankNodeId = null;
+        }
         await renderSearchResults();
     }
 
     async function renderSearchResults() {
-        if(!currentBankNodeId) return;
+        if(!currentBankNodeId) {
+            document.getElementById('bankContentArea').style.display = 'none';
+            return;
+        }
         const tree = await getTree(STORE_WORD_BANKS);
         const node = tree.find(n => n.id === currentBankNodeId);
         if(!node) return;
@@ -495,7 +548,6 @@
             </div>`
         ).join('');
 
-        // 绑定删除 (需求2) 和编辑 (需求3,4)
         container.querySelectorAll('.del-btn').forEach(b => b.onclick = async (e) => {
             const cn = e.currentTarget.dataset.cn;
             showConfirm(`确定删除术语「${cn}」？`, async () => {
@@ -539,8 +591,9 @@
         });
     };
 
+    // 修复：添加了缺乏选择时的阻断和弹窗提示，防止死机感
     document.getElementById('deleteWordBankBtn').onclick = async () => {
-        if (!currentBankNodeId) return;
+        if (!currentBankNodeId) return showToast('请先选择要删除的库或文件夹');
         const tree = await getTree(STORE_WORD_BANKS);
         const node = tree.find(n => n.id === currentBankNodeId);
         if(!node) return;
@@ -555,18 +608,42 @@
         });
     };
 
-    // 导入导出逻辑优化
     document.getElementById('exportWordBankBtn').onclick = async () => {
-        if (!currentBankNodeId) return;
+        if (!currentBankNodeId) return showToast('请先选择一个词库进行导出');
         const terms = await dbGet(STORE_WORD_BANKS, currentBankNodeId);
         const tree = await getTree(STORE_WORD_BANKS);
         const node = tree.find(n => n.id === currentBankNodeId);
+        if(!node || node.type === 'folder') return showToast('只能导出词库，无法导出文件夹');
         const blob = new Blob([JSON.stringify({bankName: node.name, terms})], {type:'application/json'});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${node.name}.json`; a.click();
     };
 
+    // 修复：恢复了遗漏的 JSON 导入功能
+    document.getElementById('importWordBankBtn').onclick = () => document.getElementById('importFileInput').click();
+    document.getElementById('importFileInput').onchange = async (e) => {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                const terms = data.terms || [];
+                let name = data.bankName || '导入词库';
+                const tree = await getTree(STORE_WORD_BANKS);
+                const newId = genId();
+                tree.push({ id: newId, type: 'bank', parentId: null, name: name });
+                await dbSet(STORE_WORD_BANKS, newId, terms);
+                await saveTree(STORE_WORD_BANKS, tree);
+                currentBankNodeId = newId;
+                await refreshWordBankSelect();
+                showToast(`✅ 导入词库「${name}」成功`);
+            } catch (ex) { showToast('文件格式错误'); }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
+
     document.getElementById('importToDeckBtn').onclick = async () => {
-        if (!currentBankNodeId) return;
+        if (!currentBankNodeId) return showToast('请先选择要导入的词库');
         const dTree = await getTree(STORE_CARD_DECKS);
         if (dTree.length === 0) return showToast('请先前往"记忆复习"创建卡库');
         
@@ -581,6 +658,7 @@
             overlay.remove();
             const wordTerms = await dbGet(STORE_WORD_BANKS, currentBankNodeId) || [];
             const deck = await dbGet(STORE_CARD_DECKS, deckId);
+            if(!deck) return;
             let added = 0;
             for (const t of wordTerms) {
                 if (!deck.terms.some(ex => ex.chinese === t.chinese)) {
@@ -599,7 +677,11 @@
         const sel = document.getElementById('deckSelect');
         sel.innerHTML = buildTreeSelectHTML(tree) || '<option value="">无卡库，请新建</option>';
         if (tree.length > 0 && !currentDeckNodeId) currentDeckNodeId = tree[0].id;
-        if (currentDeckNodeId) sel.value = currentDeckNodeId;
+        if (currentDeckNodeId && tree.some(n => n.id === currentDeckNodeId)) {
+            sel.value = currentDeckNodeId;
+        } else {
+            currentDeckNodeId = null;
+        }
         await loadDeckAndReview();
     }
 
@@ -612,6 +694,9 @@
             document.getElementById('reviewEmptyState').style.display='block';
             document.getElementById('deckContentArea').style.display='block';
             document.getElementById('deckFolderArea').style.display='none';
+            document.getElementById('cardStage').style.display='none';
+            document.getElementById('ratingButtons').style.display='none';
+            document.getElementById('reviewActionsRow').style.display='none';
             return;
         }
         
@@ -628,6 +713,7 @@
         document.getElementById('deckFolderArea').style.display = 'none';
 
         deckData = await dbGet(STORE_CARD_DECKS, currentDeckNodeId);
+        if(!deckData) return;
         const today = getToday();
         if (deckData.dailyMeta.date !== today) {
             deckData.dailyMeta = { date: today, newCardsIntroduced: 0, reviewsCompleted: 0 };
@@ -681,6 +767,7 @@
     }
 
     function updateDeckStats() {
+        if(!deckData) return;
         const dueCount = reviewQueue.filter(c => !c.isNew).length;
         const newCount = reviewQueue.filter(c => c.isNew).length;
         document.getElementById('statDue').textContent = `待复习 ${dueCount}`;
@@ -689,7 +776,6 @@
         document.getElementById('statTotal').textContent = `总计 ${deckData.terms.length}`;
     }
 
-    // 核心：复习周期推演函数 (需求 1)
     function calcNextInterval(state, rating) {
         const s = state ? {...state} : {interval:0, ease:2.5, repetitions:0, nextReview:'', totalReviews:0};
         const isNew = !state || s.repetitions===0;
@@ -733,7 +819,6 @@
         document.getElementById('cardEnglishTerm').textContent = term ? term.english : '—';
         document.getElementById('cardHintInfo').textContent = card.state ? `已复习 ${card.state.totalReviews||0} 次，当前周期 ${card.state.interval} 天` : '✨ 首次学习';
 
-        // 动态计算按钮上的预测时间 (需求 1)
         const stAgain = calcNextInterval(card.state, 'again');
         const stHard = calcNextInterval(card.state, 'hard');
         const stGood = calcNextInterval(card.state, 'good');
@@ -801,7 +886,7 @@
     };
 
     document.getElementById('deleteDeckBtn').onclick = async () => {
-        if (!currentDeckNodeId) return;
+        if (!currentDeckNodeId) return showToast('请先选择要删除的卡库或文件夹');
         const tree = await getTree(STORE_CARD_DECKS);
         const node = tree.find(n => n.id === currentDeckNodeId);
         if(!node) return;
@@ -816,6 +901,7 @@
     };
 
     document.getElementById('resetDeckProgressBtn').onclick = () => {
+        if(!currentDeckNodeId || !deckData) return showToast('请先选择要重置的卡库');
         showConfirm('重置进度后所有卡片将变回新卡，确定继续吗？', async () => {
             deckData.learningData = {};
             deckData.dailyMeta = { date: getToday(), newCardsIntroduced: 0, reviewsCompleted: 0 };
@@ -854,8 +940,7 @@
 
     window.onload = async () => {
         await openDB();
-        await migrateFlatToTree(STORE_WORD_BANKS);
-        await migrateFlatToTree(STORE_CARD_DECKS);
+        await recoverDataFromV4(); // 后台全自动提取旧版数据
         await loadSettings();
         await refreshWordBankSelect();
         await refreshDeckSelect();
