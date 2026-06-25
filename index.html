@@ -1,821 +1,893 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>中英术语库 · 多库管理 (V4.6 修复新卡计数)</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #f0f4fb; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px 40px; margin: 0; }
-        .app-card { max-width: 700px; width: 100%; background: #ffffff; border-radius: 36px; box-shadow: 0 20px 50px -12px rgba(0, 20, 40, 0.2); padding: 20px 20px 28px; transition: box-shadow 0.2s; margin-top: 8px; }
-        .tabs { display: flex; gap: 6px; margin-bottom: 20px; background: #eef3fa; border-radius: 40px; padding: 5px; flex-wrap: nowrap; overflow-x: auto; }
-        .tab-btn { flex: 1 0 auto; text-align: center; padding: 10px 6px; border-radius: 40px; font-weight: 550; font-size: 0.9rem; background: transparent; border: none; color: #2f4b6b; cursor: pointer; transition: all 0.2s; white-space: nowrap; min-width: 0; }
-        .tab-btn.active { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.06); color: #0b263f; font-weight: 650; }
-        .panel { display: none; }
-        .panel.active { display: block; }
-        h1 { font-size: 1.7rem; font-weight: 650; letter-spacing: -0.02em; color: #0b263f; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-        .subhead { color: #2f4b6b; font-size: 0.95rem; margin-bottom: 18px; padding-left: 14px; border-left: 4px solid #2d7aff; background: #eef5ff; border-radius: 0 14px 14px 0; line-height: 1.5; padding: 10px 16px; }
-        .textarea-wrapper { background: #f9fcff; border-radius: 24px; padding: 4px; border: 1px solid #dce5f0; transition: border 0.2s, box-shadow 0.2s; }
-        .textarea-wrapper:focus-within { border-color: #2d7aff; box-shadow: 0 0 0 4px rgba(45, 122, 255, 0.15); }
-        textarea { width: 100%; padding: 18px 20px; font-size: 1rem; line-height: 1.7; border: none; background: transparent; resize: vertical; min-height: 160px; max-height: 360px; outline: none; font-family: inherit; color: #0b1f33; }
-        textarea::placeholder { color: #a0b6cf; font-weight: 300; }
-        .action-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: 20px; gap: 12px; }
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn { background: white; border: 1px solid #cbd7e9; padding: 11px 20px; border-radius: 60px; font-weight: 500; font-size: 0.95rem; color: #1a2f4a; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; cursor: pointer; background: #fafdff; touch-action: manipulation; user-select: none; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        .btn-primary { background: #1a2f4a; border: 1px solid #1a2f4a; color: white; box-shadow: 0 6px 12px -6px rgba(26, 47, 74, 0.25); }
-        .btn-save { background: #059669; border: 1px solid #059669; color: white; }
-        .btn-export { background: #3b82f6; border: 1px solid #3b82f6; color: white; }
-        .btn-import { background: #8b5cf6; border: 1px solid #8b5cf6; color: white; }
-        .btn-danger { background: #fff5f5; border: 1px solid #fccccc; color: #b33636; }
-        .btn-small { padding: 8px 16px; font-size: 0.85rem; }
-        .stats { font-size: 0.9rem; color: #2b4a6b; background: #e6effa; padding: 6px 18px; border-radius: 40px; font-weight: 480; white-space: nowrap; }
-        .result-section { margin-top: 20px; background: #fafdff; border-radius: 28px; border: 1px solid #e4ecf7; overflow: hidden; }
-        .result-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #f0f7ff; border-bottom: 1px solid #dce8f5; flex-wrap: wrap; gap: 8px; }
-        .badge { background: #b7ceec; color: #0a1e38; border-radius: 40px; padding: 2px 14px; font-size: 0.75rem; font-weight: 650; }
-        .list-container { padding: 6px 6px 8px 14px; max-height: 450px; overflow-y: auto; }
-        .pair-item { display: flex; padding: 10px 12px 10px 6px; border-bottom: 1px solid #eaf1fa; align-items: center; gap: 10px; font-size: 0.96rem; border-radius: 14px; }
-        .pair-index { color: #718aa8; font-weight: 400; font-size: 0.78rem; min-width: 28px; text-align: right; flex-shrink: 0; }
-        .pair-content { flex: 1; display: flex; flex-direction: column; gap: 4px; word-break: break-word; }
-        .pair-chinese { color: #09315a; font-weight: 540; background: #e2edfe; padding: 2px 16px 2px 10px; border-radius: 30px; display: inline-block; align-self: flex-start; font-size: 0.95rem; }
-        .pair-english { color: #1a3c62; background: #deeafb; padding: 2px 16px 2px 10px; border-radius: 30px; display: inline-block; align-self: flex-start; font-size: 0.95rem; }
-        .pair-delete { flex-shrink: 0; background: transparent; border: none; color: #a0b8d0; font-size: 1.3rem; padding: 4px 8px; border-radius: 30px; cursor: pointer; }
-        .duplicate-badge { position: absolute; top: 4px; right: 40px; background: #fef3c7; color: #92400e; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; }
-        .blocked-badge { position: absolute; top: 4px; right: 40px; background: #fee2e2; color: #991b1b; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; }
-        .save-feedback { background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-left: 8px; }
-        .empty-placeholder { padding: 40px 16px; text-align: center; color: #7a96b5; font-size: 0.98rem; }
-        .footer-note { margin-top: 18px; font-size: 0.8rem; color: #7f99b7; text-align: center; border-top: 1px dashed #d5e2f0; padding-top: 16px; }
-        .search-wrapper { background: #f9fcff; border-radius: 28px; padding: 4px; border: 1px solid #dce5f0; margin-bottom: 18px; display: flex; align-items: center; }
-        .search-icon { padding: 0 14px; font-size: 1.2rem; color: #6a84a3; }
-        #searchInput { width: 100%; padding: 16px 8px 16px 0; border: none; background: transparent; font-size: 1rem; outline: none; font-family: inherit; }
-        .highlight { background-color: #fde68a; border-radius: 4px; padding: 0 2px; }
-        .data-toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-        .selector-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-        .selector-row select { padding: 8px 12px; border-radius: 14px; border: 1px solid #dce5f0; background: white; font-family: inherit; font-size: 0.9rem; flex: 1; }
-        .confirm-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .confirm-dialog { background: white; border-radius: 24px; padding: 24px; max-width: 380px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        .confirm-dialog p { margin-bottom: 16px; color: #1a2f4a; font-size: 1rem; line-height: 1.5; }
-        .confirm-dialog small { color: #6b7280; font-size: 0.8rem; display: block; margin-top: 4px; }
-        .confirm-buttons { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
-        .confirm-input { width: 100%; padding: 8px 12px; border-radius: 12px; border: 1px solid #dce5f0; margin-bottom: 12px; font-family: inherit; }
-        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1a2f4a; color: white; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.2); animation: slideDown 0.3s ease-out; }
-        @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-        .card-stage { perspective: 900px; margin: 0 auto 20px; max-width: 480px; min-height: 220px; cursor: pointer; }
-        .card-inner { position: relative; width: 100%; min-height: 220px; transition: transform 0.5s; transform-style: preserve-3d; border-radius: 24px; }
-        .card-inner.flipped { transform: rotateY(180deg); }
-        .card-face { position: absolute; top: 0; left: 0; width: 100%; min-height: 220px; backface-visibility: hidden; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 24px; box-shadow: 0 8px 30px rgba(0,20,40,0.1); }
-        .card-front { background: linear-gradient(145deg, #ffffff 0%, #f5f9ff 100%); z-index: 2; }
-        .card-back { background: linear-gradient(145deg, #f0f7ff 0%, #e8f2fe 100%); transform: rotateY(180deg); z-index: 1; }
-        .card-chinese-term { font-size: 2rem; font-weight: 700; color: #0b263f; }
-        .card-english-term { font-size: 1.6rem; font-weight: 600; color: #1a3c62; }
-        .rating-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 6px; }
-        .rating-btn { flex: 1; min-width: 60px; padding: 12px 8px; border-radius: 20px; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; color: white; }
-        .rating-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-        .rating-again { background: #ef4444; }
-        .rating-hard { background: #f59e0b; }
-        .rating-good { background: #10b981; }
-        .rating-easy { background: #3b82f6; }
-        .migration-dialog { background: #fef9e7; border: 2px solid #fcd34d; border-radius: 24px; padding: 20px; margin-bottom: 16px; }
-        .migration-dialog h3 { color: #92400e; margin-bottom: 8px; }
-        .migration-dialog .btn-group { justify-content: flex-end; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>中英术语库 · 多级库管理 (V5)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #f0f4fb; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px 40px; margin: 0; }
+    .app-card { max-width: 700px; width: 100%; background: #ffffff; border-radius: 36px; box-shadow: 0 20px 50px -12px rgba(0, 20, 40, 0.2); padding: 20px 20px 28px; margin-top: 8px; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 20px; background: #eef3fa; border-radius: 40px; padding: 5px; flex-wrap: nowrap; overflow-x: auto; }
+    .tab-btn { flex: 1 0 auto; text-align: center; padding: 10px 6px; border-radius: 40px; font-weight: 550; font-size: 0.9rem; background: transparent; border: none; color: #2f4b6b; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .tab-btn.active { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.06); color: #0b263f; font-weight: 650; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    h1 { font-size: 1.7rem; font-weight: 650; color: #0b263f; margin-bottom: 6px; }
+    .subhead { color: #2f4b6b; font-size: 0.95rem; margin-bottom: 18px; padding: 10px 16px; border-left: 4px solid #2d7aff; background: #eef5ff; border-radius: 0 14px 14px 0; }
+    .textarea-wrapper { background: #f9fcff; border-radius: 24px; padding: 4px; border: 1px solid #dce5f0; margin-bottom: 12px; }
+    .textarea-wrapper:focus-within { border-color: #2d7aff; box-shadow: 0 0 0 4px rgba(45,122,255,0.15); }
+    textarea { width: 100%; padding: 18px 20px; font-size: 1rem; line-height: 1.7; border: none; background: transparent; resize: vertical; min-height: 140px; outline: none; font-family: inherit; color: #0b1f33; }
+    .action-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: 12px; gap: 12px; }
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn { background: white; border: 1px solid #cbd7e9; padding: 10px 18px; border-radius: 60px; font-weight: 500; font-size: 0.9rem; color: #1a2f4a; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; background: #fafdff; user-select: none; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .btn-primary { background: #1a2f4a; border-color: #1a2f4a; color: white; }
+    .btn-save { background: #059669; border-color: #059669; color: white; }
+    .btn-export { background: #3b82f6; border-color: #3b82f6; color: white; }
+    .btn-import { background: #8b5cf6; border-color: #8b5cf6; color: white; }
+    .btn-danger { background: #fff5f5; border-color: #fccccc; color: #b33636; }
+    .btn-small { padding: 7px 14px; font-size: 0.8rem; }
+    .btn:active { transform: scale(0.96); }
+    .stats { font-size: 0.9rem; color: #2b4a6b; background: #e6effa; padding: 6px 18px; border-radius: 40px; font-weight: 480; }
+    .result-section { margin-top: 16px; background: #fafdff; border-radius: 28px; border: 1px solid #e4ecf7; overflow: hidden; }
+    .result-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #f0f7ff; border-bottom: 1px solid #dce8f5; }
+    .badge { background: #b7ceec; color: #0a1e38; border-radius: 40px; padding: 2px 14px; font-size: 0.75rem; font-weight: 650; }
+    .list-container { padding: 6px 6px 8px 14px; max-height: 450px; overflow-y: auto; }
+    .pair-item { display: flex; padding: 10px 12px 10px 6px; border-bottom: 1px solid #eaf1fa; align-items: center; gap: 10px; font-size: 0.96rem; border-radius: 14px; position: relative; }
+    .pair-index { color: #718aa8; font-size: 0.78rem; min-width: 28px; text-align: right; flex-shrink: 0; }
+    .pair-content { flex: 1; display: flex; flex-direction: column; gap: 4px; word-break: break-word; }
+    .pair-chinese { color: #09315a; font-weight: 540; background: #e2edfe; padding: 2px 16px; border-radius: 30px; display: inline-block; align-self: flex-start; }
+    .pair-english { color: #1a3c62; background: #deeafb; padding: 2px 16px; border-radius: 30px; display: inline-block; align-self: flex-start; }
+    .pair-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .pair-actions button { background: transparent; border: none; color: #a0b8d0; font-size: 1.1rem; padding: 4px 6px; border-radius: 20px; cursor: pointer; }
+    .pair-actions button:hover { background: #f0f4fa; }
+    .pair-actions .edit-btn:hover { color: #3b82f6; }
+    .pair-actions .delete-btn:hover { color: #ef4444; }
+    .empty-placeholder { padding: 40px 16px; text-align: center; color: #7a96b5; font-size: 0.98rem; }
+    .search-wrapper { background: #f9fcff; border-radius: 28px; padding: 4px; border: 1px solid #dce5f0; margin-bottom: 12px; display: flex; align-items: center; }
+    .search-icon { padding: 0 14px; font-size: 1.2rem; color: #6a84a3; }
+    #searchInput { width: 100%; padding: 16px 8px 16px 0; border: none; background: transparent; font-size: 1rem; outline: none; font-family: inherit; }
+    .data-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .selector-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .selector-row select { padding: 8px 12px; border-radius: 14px; border: 1px solid #dce5f0; background: white; font-family: inherit; font-size: 0.9rem; flex: 1; }
+    .folder-tree { background: #f8fafd; border-radius: 20px; padding: 8px; margin-bottom: 12px; max-height: 200px; overflow-y: auto; border: 1px solid #e4ecf7; }
+    .folder-item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; cursor: pointer; font-size: 0.9rem; }
+    .folder-item:hover { background: #eef3fa; }
+    .folder-item.selected { background: #dbeafe; font-weight: 600; }
+    .folder-item .icon { font-size: 1.1rem; }
+    .folder-item .name { flex: 1; }
+    .folder-actions { display: flex; gap: 4px; margin-left: auto; }
+    .folder-actions button { background: transparent; border: none; cursor: pointer; font-size: 0.9rem; padding: 2px 6px; border-radius: 8px; }
+    .confirm-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .confirm-dialog { background: white; border-radius: 24px; padding: 24px; max-width: 380px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+    .confirm-dialog p { margin-bottom: 16px; color: #1a2f4a; }
+    .confirm-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+    .confirm-input { width: 100%; padding: 10px; border-radius: 12px; border: 1px solid #dce5f0; margin-bottom: 12px; font-family: inherit; }
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1a2f4a; color: white; padding: 12px 24px; border-radius: 30px; z-index: 2000; animation: slideDown 0.3s; }
+    @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    .card-stage { perspective: 900px; margin: 0 auto 20px; max-width: 480px; min-height: 200px; cursor: pointer; }
+    .card-inner { position: relative; width: 100%; min-height: 200px; transition: transform 0.5s; transform-style: preserve-3d; border-radius: 24px; }
+    .card-inner.flipped { transform: rotateY(180deg); }
+    .card-face { position: absolute; top: 0; left: 0; width: 100%; min-height: 200px; backface-visibility: hidden; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; box-shadow: 0 8px 30px rgba(0,20,40,0.1); }
+    .card-front { background: linear-gradient(145deg, #fff, #f5f9ff); z-index: 2; }
+    .card-back { background: linear-gradient(145deg, #f0f7ff, #e8f2fe); transform: rotateY(180deg); z-index: 1; }
+    .card-chinese-term { font-size: 1.8rem; font-weight: 700; color: #0b263f; }
+    .card-english-term { font-size: 1.4rem; font-weight: 600; color: #1a3c62; }
+    .rating-buttons { display: flex; gap: 8px; justify-content: center; margin-top: 6px; }
+    .rating-btn { flex: 1; min-width: 55px; padding: 10px 6px; border-radius: 18px; font-weight: 600; font-size: 0.8rem; border: none; cursor: pointer; color: white; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .rating-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .rating-again { background: #ef4444; }
+    .rating-hard { background: #f59e0b; }
+    .rating-good { background: #10b981; }
+    .rating-easy { background: #3b82f6; }
+    .rating-interval { font-size: 0.65rem; opacity: 0.9; font-weight: 400; }
+    .migration-dialog { background: #fef9e7; border: 2px solid #fcd34d; border-radius: 24px; padding: 20px; margin-bottom: 16px; }
+  </style>
 </head>
 <body>
-<div class="app-card" role="main">
-    <div class="tabs">
-        <button class="tab-btn active" id="tabExtract">📋 术语提取</button>
-        <button class="tab-btn" id="tabSearch">🔎 智能检索</button>
-        <button class="tab-btn" id="tabReview">🧠 记忆复习</button>
-    </div>
+<div class="app-card">
+  <div class="tabs">
+    <button class="tab-btn active" id="tabExtract">📋 术语提取</button>
+    <button class="tab-btn" id="tabSearch">🔎 智能检索</button>
+    <button class="tab-btn" id="tabReview">🧠 记忆复习</button>
+  </div>
+  <div id="migrationArea"></div>
 
-    <!-- 迁移提示区 -->
-    <div id="migrationArea"></div>
-
-    <!-- 提取面板 -->
-    <div class="panel active" id="extractPanel">
-        <h1>📋 术语提取器</h1>
-        <div class="subhead">⚡ 提取后保存到词库 · 选择或新建词库</div>
-        <div class="textarea-wrapper">
-            <textarea id="inputText" placeholder="粘贴术语文本…&#10;有机废弃物 — Organic Waste" spellcheck="true"></textarea>
-        </div>
-        <div class="action-bar">
-            <div class="btn-group">
-                <button class="btn btn-primary" id="extractBtn">🔍 提取</button>
-                <button class="btn btn-save" id="saveBtn">💾 保存到词库</button>
-                <button class="btn btn-secondary" id="clearBtn">🗑️ 清空</button>
-            </div>
-            <div class="stats" id="pairCount">0 对</div>
-        </div>
-        <div class="result-section">
-            <div class="result-header"><span>📖 提取结果 <span class="badge" id="resultBadge">0</span></span></div>
-            <div class="list-container" id="listContainer"></div>
-        </div>
+  <!-- 提取面板 -->
+  <div class="panel active" id="extractPanel">
+    <h1>📋 术语提取器</h1>
+    <div class="subhead">粘贴文本，提取中文 — 英文术语对，保存到词库</div>
+    <div class="textarea-wrapper"><textarea id="inputText" placeholder="有机废弃物 — Organic Waste&#10;好氧堆肥 — Aerobic Composting" spellcheck="true"></textarea></div>
+    <div class="action-bar">
+      <div class="btn-group">
+        <button class="btn btn-primary" id="extractBtn">🔍 提取</button>
+        <button class="btn btn-save" id="saveBtn">💾 保存到词库</button>
+        <button class="btn btn-secondary" id="clearBtn">🗑️ 清空</button>
+      </div>
+      <span class="stats" id="pairCount">0 对</span>
     </div>
-
-    <!-- 检索面板 -->
-    <div class="panel" id="searchPanel">
-        <h1>🔎 渐进检索</h1>
-        <div class="selector-row">
-            <select id="wordBankSelect"><option value="">加载中…</option></select>
-            <button class="btn btn-small btn-secondary" id="newWordBankBtn">➕ 新建词库</button>
-            <button class="btn btn-small btn-danger" id="deleteWordBankBtn">🗑️</button>
-        </div>
-        <div class="search-wrapper">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="搜索当前词库…" autocomplete="off">
-        </div>
-        <div class="data-toolbar">
-            <button class="btn btn-export btn-small" id="exportWordBankBtn">📤 导出词库</button>
-            <button class="btn btn-import btn-small" id="importWordBankBtn">📥 导入词库</button>
-            <button class="btn btn-small" id="importToDeckBtn" style="background:#8b5cf6;color:white;">📚 导入到卡库</button>
-        </div>
-        <input type="file" id="importFileInput" accept=".json" hidden>
-        <div class="result-section">
-            <div class="result-header"><span>📋 结果 <span class="badge" id="searchBadge">0</span></span></div>
-            <div class="list-container" id="searchListContainer"></div>
-        </div>
+    <div class="result-section">
+      <div class="result-header"><span>📖 提取结果 <span class="badge" id="resultBadge">0</span></span></div>
+      <div class="list-container" id="listContainer"></div>
     </div>
+  </div>
 
-    <!-- 复习面板 -->
-    <div class="panel" id="reviewPanel">
-        <h1>🧠 间隔复习</h1>
-        <div class="selector-row">
-            <select id="deckSelect"><option value="">加载中…</option></select>
-            <button class="btn btn-small btn-secondary" id="newDeckBtn">➕ 新建卡库</button>
-            <button class="btn btn-small btn-danger" id="deleteDeckBtn">🗑️</button>
-            <button class="btn btn-small btn-secondary" id="resetDeckProgressBtn">🔄 重置进度</button>
-        </div>
-        <div class="daily-limit-settings" style="margin-bottom:12px; display:flex; gap:8px; align-items:center; justify-content:center;">
-            <label>📅 每日新卡上限：</label>
-            <input type="number" id="dailyLimitInput" min="1" max="200" value="20" style="width:70px; padding:6px; border-radius:10px; border:1px solid #dce5f0; text-align:center;">
-            <button class="btn btn-small btn-secondary" id="saveDailyLimitBtn">保存</button>
-        </div>
-        <div class="review-stats-bar" style="display:flex; gap:8px; margin-bottom:12px; justify-content:center;">
-            <span class="stats" id="statDue">待复习 0</span>
-            <span class="stats" id="statNew">新卡 0</span>
-            <span class="stats" id="statDone">已完成 0</span>
-            <span class="stats" id="statTotal">总计 0</span>
-        </div>
-        <div class="card-stage" id="cardStage" style="display:none;">
-            <div class="card-inner" id="cardInner">
-                <div class="card-face card-front"><div class="card-chinese-term" id="cardChineseTerm"></div><div class="card-hint-tap">👆 点击翻转</div></div>
-                <div class="card-face card-back"><div class="card-english-term" id="cardEnglishTerm"></div><div class="card-hint" id="cardHintInfo"></div></div>
-            </div>
-        </div>
-        <div class="rating-buttons" id="ratingButtons" style="display:none;">
-            <button class="rating-btn rating-again" data-rating="again" disabled>重来</button>
-            <button class="rating-btn rating-hard" data-rating="hard" disabled>困难</button>
-            <button class="rating-btn rating-good" data-rating="good" disabled>良好</button>
-            <button class="rating-btn rating-easy" data-rating="easy" disabled>简单</button>
-        </div>
-        <div class="review-actions-row" style="display:none; justify-content:center; gap:8px; margin-top:8px;" id="reviewActionsRow">
-            <button class="btn btn-small btn-secondary" id="buryCardBtn">📅 搁置</button>
-            <button class="btn btn-small btn-danger" id="deleteCardBtn">🗑️ 删除</button>
-        </div>
-        <div id="reviewComplete" style="display:none; text-align:center; padding:30px;">🎉 今日复习完成！</div>
-        <div id="reviewEmptyState" class="empty-placeholder">请先创建卡库并导入术语</div>
+  <!-- 检索面板 -->
+  <div class="panel" id="searchPanel">
+    <h1>🔎 智能检索</h1>
+    <div class="subhead">管理词库文件夹，点击选中词库查看术语，可编辑/删除</div>
+    <div class="folder-tree" id="wordFolderTree"></div>
+    <div class="selector-row">
+      <button class="btn btn-small btn-secondary" id="newFolderBtn">📁 新建文件夹</button>
+      <button class="btn btn-small btn-save" id="newWordBankBtn">📚 新建词库</button>
+      <button class="btn btn-small btn-danger" id="deleteSelectedBtn">🗑️ 删除选中</button>
     </div>
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="搜索当前词库…" autocomplete="off">
+    </div>
+    <div class="data-toolbar">
+      <button class="btn btn-export btn-small" id="exportWordBankBtn">📤 导出词库</button>
+      <button class="btn btn-import btn-small" id="importWordBankBtn">📥 导入词库</button>
+      <button class="btn btn-small" id="importToDeckBtn" style="background:#8b5cf6;color:white;">📚 导入到卡库</button>
+    </div>
+    <input type="file" id="importFileInput" accept=".json" hidden>
+    <div class="result-section">
+      <div class="result-header"><span>📋 结果 <span class="badge" id="searchBadge">0</span></span></div>
+      <div class="list-container" id="searchListContainer"></div>
+    </div>
+  </div>
+
+  <!-- 复习面板 -->
+  <div class="panel" id="reviewPanel">
+    <h1>🧠 间隔复习</h1>
+    <div class="subhead">管理卡库文件夹，选中卡库进行复习</div>
+    <div class="folder-tree" id="deckFolderTree"></div>
+    <div class="selector-row">
+      <button class="btn btn-small btn-secondary" id="newDeckFolderBtn">📁 新建文件夹</button>
+      <button class="btn btn-small btn-save" id="newDeckBtn">📚 新建卡库</button>
+      <button class="btn btn-small btn-danger" id="deleteDeckSelectedBtn">🗑️ 删除选中</button>
+      <button class="btn btn-small btn-secondary" id="resetDeckProgressBtn">🔄 重置进度</button>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:12px;">
+      <label>📅 每日新卡：</label>
+      <input type="number" id="dailyLimitInput" min="1" max="200" value="20" style="width:65px; padding:6px; border-radius:10px; border:1px solid #dce5f0; text-align:center;">
+      <button class="btn btn-small btn-secondary" id="saveDailyLimitBtn">保存</button>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:12px; justify-content:center;">
+      <span class="stats" id="statDue">待复习 0</span>
+      <span class="stats" id="statNew">新卡 0</span>
+      <span class="stats" id="statDone">已完成 0</span>
+      <span class="stats" id="statTotal">总计 0</span>
+    </div>
+    <div class="card-stage" id="cardStage" style="display:none;">
+      <div class="card-inner" id="cardInner">
+        <div class="card-face card-front"><div class="card-chinese-term" id="cardChineseTerm"></div><div style="color:#a0b8d0; margin-top:8px;">👆 点击翻转</div></div>
+        <div class="card-face card-back"><div class="card-english-term" id="cardEnglishTerm"></div><div style="color:#8aa3c0; margin-top:8px; font-size:0.8rem;" id="cardHintInfo"></div></div>
+      </div>
+    </div>
+    <div class="rating-buttons" id="ratingButtons" style="display:none;">
+      <button class="rating-btn rating-again" data-rating="again" disabled>重来<span class="rating-interval" id="againInterval"></span></button>
+      <button class="rating-btn rating-hard" data-rating="hard" disabled>困难<span class="rating-interval" id="hardInterval"></span></button>
+      <button class="rating-btn rating-good" data-rating="good" disabled>良好<span class="rating-interval" id="goodInterval"></span></button>
+      <button class="rating-btn rating-easy" data-rating="easy" disabled>简单<span class="rating-interval" id="easyInterval"></span></button>
+    </div>
+    <div style="display:none; justify-content:center; gap:8px; margin-top:8px;" id="reviewActionsRow">
+      <button class="btn btn-small btn-secondary" id="buryCardBtn">📅 搁置</button>
+      <button class="btn btn-small btn-danger" id="deleteCardBtn">🗑️ 删除</button>
+    </div>
+    <div id="reviewComplete" style="display:none; text-align:center; padding:30px;">🎉 今日复习完成！</div>
+    <div id="reviewEmptyState" class="empty-placeholder">请先创建卡库并导入术语</div>
+  </div>
 </div>
 
 <script>
-(function() {
-    const DB_NAME = 'TerminologyDB_V4';
-    let db;
-    const STORE_WORD_BANKS = 'wordBanks';
-    const STORE_CARD_DECKS = 'cardDecks';
-    const STORE_SETTINGS = 'settings';
+(async function() {
+  const DB_NAME = 'TerminologyDB_V5';
+  let db;
+  const STORE_DATA = 'data';
 
-    const openDB = () => new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, 2);
-        req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(STORE_WORD_BANKS)) db.createObjectStore(STORE_WORD_BANKS);
-            if (!db.objectStoreNames.contains(STORE_CARD_DECKS)) db.createObjectStore(STORE_CARD_DECKS);
-            if (!db.objectStoreNames.contains(STORE_SETTINGS)) db.createObjectStore(STORE_SETTINGS);
-        };
-        req.onsuccess = () => { db = req.result; resolve(db); };
-        req.onerror = () => reject(req.error);
+  const openDB = () => new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_DATA)) db.createObjectStore(STORE_DATA);
+    };
+    req.onsuccess = () => { db = req.result; res(db); };
+    req.onerror = () => rej(req.error);
+  });
+
+  async function dbSet(key, value) {
+    if (!db) await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE_DATA, 'readwrite');
+      tx.objectStore(STORE_DATA).put(value, key);
+      tx.oncomplete = res; tx.onerror = rej;
     });
+  }
+  async function dbGet(key) {
+    if (!db) await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE_DATA, 'readonly');
+      const req = tx.objectStore(STORE_DATA).get(key);
+      req.onsuccess = () => res(req.result);
+      req.onerror = rej;
+    });
+  }
+  async function dbDelete(key) {
+    if (!db) await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE_DATA, 'readwrite');
+      tx.objectStore(STORE_DATA).delete(key);
+      tx.oncomplete = res; tx.onerror = rej;
+    });
+  }
 
-    async function dbSet(store, key, value) {
-        if (!db) await openDB();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(store, 'readwrite');
-            tx.objectStore(store).put(value, key);
-            tx.oncomplete = resolve;
-            tx.onerror = reject;
-        });
+  // 数据结构
+  const WORD_TREE_KEY = 'wordFolderTree';
+  const DECK_TREE_KEY = 'deckFolderTree';
+  const SETTINGS_KEY = 'settings';
+
+  // 文件夹树节点: { id, name, type: 'folder'|'bank', children?: [], terms?: [], learningData?: {}, dailyMeta?: {} }
+  let wordTree = { id: 'root', name: '词库根目录', type: 'folder', children: [] };
+  let deckTree = { id: 'root', name: '卡库根目录', type: 'folder', children: [] };
+  let dailyNewCardsLimit = 20;
+  let currentWordBankPath = null; // 当前选中的词库路径（id路径数组）
+  let currentDeckPath = null;
+  let reviewQueue = [];
+  let deckData = null;
+  let sessionNewCardsCount = 0;
+
+  function getToday() { return new Date().toISOString().slice(0,10); }
+  function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  // 树操作
+  function findNode(tree, path) {
+    let node = tree;
+    for (const id of path) {
+      if (!node.children) return null;
+      node = node.children.find(c => c.id === id);
+      if (!node) return null;
     }
-
-    async function dbGet(store, key) {
-        if (!db) await openDB();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(store, 'readonly');
-            const req = tx.objectStore(store).get(key);
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = reject;
-        });
+    return node;
+  }
+  function findParent(tree, path) {
+    if (path.length <= 1) return tree;
+    return findNode(tree, path.slice(0, -1));
+  }
+  function deleteNode(tree, path) {
+    const parent = findParent(tree, path);
+    if (parent && parent.children) {
+      const id = path[path.length-1];
+      parent.children = parent.children.filter(c => c.id !== id);
     }
+  }
 
-    async function dbDelete(store, key) {
-        if (!db) await openDB();
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(store, 'readwrite');
-            tx.objectStore(store).delete(key);
-            tx.oncomplete = resolve;
-            tx.onerror = reject;
-        });
-    }
+  async function loadTrees() {
+    wordTree = await dbGet(WORD_TREE_KEY) || { id: 'root', name: '词库根目录', type: 'folder', children: [] };
+    deckTree = await dbGet(DECK_TREE_KEY) || { id: 'root', name: '卡库根目录', type: 'folder', children: [] };
+  }
+  async function saveWordTree() { await dbSet(WORD_TREE_KEY, wordTree); }
+  async function saveDeckTree() { await dbSet(DECK_TREE_KEY, deckTree); }
 
-    // 旧版 localStorage 键名
-    const OLD_STORAGE_KEY = 'terminology_saved_pairs';
-    const OLD_LEARNING_KEY = 'terminology_learning_data';
-    const OLD_META_KEY = 'terminology_daily_meta';
-    const MIGRATION_FLAG = 'v4_migration_completed';
+  async function loadSettings() {
+    const s = await dbGet(SETTINGS_KEY) || {};
+    dailyNewCardsLimit = s.dailyLimit || 20;
+    document.getElementById('dailyLimitInput').value = dailyNewCardsLimit;
+  }
+  async function saveSettings() {
+    await dbSet(SETTINGS_KEY, { dailyLimit: dailyNewCardsLimit });
+  }
 
-    // 数据模型
-    let currentWordBankName = '';
-    let currentDeckName = '';
-    let dailyNewCardsLimit = 20;
+  // UI工具
+  function showToast(msg, dur=2000) {
+    const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+    document.body.appendChild(t);
+    setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, dur);
+  }
+  function showConfirm(msg, cb, placeholder) {
+    const overlay = document.createElement('div'); overlay.className='confirm-overlay';
+    let inputHtml = placeholder ? `<input id="confirmInput" class="confirm-input" placeholder="${placeholder}" value="${placeholder}">` : '';
+    overlay.innerHTML = `<div class="confirm-dialog"><p>${msg}</p>${inputHtml}<div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
+    overlay.querySelector('.ok').onclick = ()=> {
+      const val = placeholder ? overlay.querySelector('#confirmInput')?.value?.trim() : null;
+      overlay.remove();
+      if (placeholder && !val) return;
+      cb(val);
+    };
+    if (placeholder) setTimeout(()=> overlay.querySelector('#confirmInput')?.select(), 50);
+  }
 
-    function getToday() { const d = new Date(); return d.toISOString().slice(0,10); }
-
-    // 词库操作
-    async function getWordBankNames() { return await dbGet(STORE_WORD_BANKS, '_names_') || []; }
-    async function saveWordBankNames(names) { await dbSet(STORE_WORD_BANKS, '_names_', names); }
-    async function getWordBank(name) { return await dbGet(STORE_WORD_BANKS, name) || []; }
-    async function saveWordBank(name, terms) { await dbSet(STORE_WORD_BANKS, name, terms); }
-    async function deleteWordBank(name) {
-        await dbDelete(STORE_WORD_BANKS, name);
-        const names = await getWordBankNames();
-        const idx = names.indexOf(name);
-        if (idx >= 0) { names.splice(idx,1); await saveWordBankNames(names); }
-    }
-
-    // 卡库操作
-    async function getDeckNames() { return await dbGet(STORE_CARD_DECKS, '_names_') || []; }
-    async function saveDeckNames(names) { await dbSet(STORE_CARD_DECKS, '_names_', names); }
-    async function getDeck(name) { return await dbGet(STORE_CARD_DECKS, name) || { terms: [], learningData: {}, dailyMeta: { date: '', newCardsIntroduced: 0, reviewsCompleted: 0 } }; }
-    async function saveDeck(name, data) { await dbSet(STORE_CARD_DECKS, name, data); }
-    async function deleteDeck(name) {
-        await dbDelete(STORE_CARD_DECKS, name);
-        const names = await getDeckNames();
-        const idx = names.indexOf(name);
-        if (idx >= 0) { names.splice(idx,1); await saveDeckNames(names); }
-    }
-
-    // 设置
-    async function loadSettings() {
-        const s = await dbGet(STORE_SETTINGS, 'config') || {};
-        dailyNewCardsLimit = s.dailyLimit || 20;
-        document.getElementById('dailyLimitInput').value = dailyNewCardsLimit;
-    }
-    async function saveSettings() {
-        await dbSet(STORE_SETTINGS, 'config', { dailyLimit: dailyNewCardsLimit });
-    }
-
-    // UI 工具
-    function showToast(msg, dur=2000) {
-        const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
-        document.body.appendChild(t);
-        setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, dur);
-    }
-    function showConfirm(msg, cb, inputPlaceholder) {
-        const overlay = document.createElement('div'); overlay.className='confirm-overlay';
-        let inputHtml = inputPlaceholder ? `<input id="confirmInput" class="confirm-input" placeholder="${inputPlaceholder}" value="${inputPlaceholder}">` : '';
-        overlay.innerHTML = `<div class="confirm-dialog"><p>${msg}</p>${inputHtml}<div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
-        document.body.appendChild(overlay);
-        overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
-        overlay.querySelector('.ok').onclick = ()=> {
-            const inputVal = inputPlaceholder ? overlay.querySelector('#confirmInput')?.value?.trim() : null;
-            overlay.remove(); 
-            if (inputPlaceholder && !inputVal) return;
-            cb(inputVal);
-        };
-        if (inputPlaceholder) setTimeout(()=> overlay.querySelector('#confirmInput')?.select(), 50);
-    }
-    function showSelection(title, options, cb) {
-        const overlay = document.createElement('div'); overlay.className='confirm-overlay';
-        let optsHtml = options.map(o => `<option value="${o}">${o}</option>`).join('');
-        overlay.innerHTML = `<div class="confirm-dialog"><p>${title}</p><select id="selectionSelect" style="width:100%; padding:10px; border-radius:12px; border:1px solid #dce5f0; margin-bottom:12px;">${optsHtml}</select><div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
-        document.body.appendChild(overlay);
-        overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
-        overlay.querySelector('.ok').onclick = ()=> { const val = overlay.querySelector('#selectionSelect').value; overlay.remove(); cb(val); };
-    }
-
-    // ==================== 历史数据迁移 ====================
-    async function checkAndMigrateOldData() {
-        if (localStorage.getItem(MIGRATION_FLAG) === 'done') return;
-        const oldTerms = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || 'null');
-        const oldLearning = JSON.parse(localStorage.getItem(OLD_LEARNING_KEY) || 'null');
-        const oldMeta = JSON.parse(localStorage.getItem(OLD_META_KEY) || 'null');
-        if (!oldTerms && !oldLearning) return;
-        const migrationDiv = document.getElementById('migrationArea');
-        let html = '<div class="migration-dialog"><h3>📦 检测到旧版本数据</h3>';
-        if (oldTerms && Array.isArray(oldTerms) && oldTerms.length > 0) {
-            html += `<p>📚 旧术语库：<strong>${oldTerms.length}</strong> 条术语</p>`;
+  function renderFolderTree(containerId, tree, selectedPath, onSelect) {
+    const container = document.getElementById(containerId);
+    function renderNode(node, path, depth) {
+      const isSelected = selectedPath && selectedPath.length === path.length && selectedPath.every((id,i) => id === path[i]);
+      let html = `<div class="folder-item${isSelected?' selected':''}" data-path="${JSON.stringify(path)}" style="padding-left:${12+depth*16}px;">`;
+      html += `<span class="icon">${node.type==='folder'?'📁':'📚'}</span>`;
+      html += `<span class="name">${node.name}</span>`;
+      html += `</div>`;
+      if (node.type === 'folder' && node.children) {
+        for (const child of node.children) {
+          html += renderNode(child, [...path, child.id], depth+1);
         }
-        if (oldLearning && Object.keys(oldLearning).length > 0) {
-            html += `<p>🧠 旧学习记录：<strong>${Object.keys(oldLearning).length}</strong> 张卡片</p>`;
-        }
-        html += '<div class="btn-group" style="margin-top:12px;">';
-        if (oldTerms && Array.isArray(oldTerms) && oldTerms.length > 0) {
-            html += '<button class="btn btn-save btn-small" id="migrateTermsBtn">📥 导入术语为词库</button>';
-        }
-        if (oldLearning && Object.keys(oldLearning).length > 0) {
-            html += '<button class="btn btn-primary btn-small" id="migrateLearningBtn">🧠 导入学习记录为卡库</button>';
-        }
-        html += '<button class="btn btn-danger btn-small" id="deleteOldDataBtn">🗑️ 删除旧数据</button>';
-        html += '</div><small style="color:#6b7280; margin-top:8px; display:block;">数据保存在 localStorage，导入后可安全删除。</small></div>';
-        migrationDiv.innerHTML = html;
-
-        document.getElementById('migrateTermsBtn')?.addEventListener('click', async () => {
-            const terms = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || '[]');
-            showConfirm('为旧术语库命名（将作为新词库名称）', async (name) => {
-                const names = await getWordBankNames();
-                let finalName = name;
-                if (names.includes(name)) finalName = name + '_' + Date.now().toString().slice(-4);
-                await saveWordBank(finalName, terms.filter(t => t && t.chinese));
-                const allNames = await getWordBankNames();
-                allNames.push(finalName);
-                await saveWordBankNames(allNames);
-                showToast(`✅ 已导入为词库「${finalName}」`);
-                migrationDiv.innerHTML = '';
-                localStorage.setItem(MIGRATION_FLAG, 'done');
-                await refreshWordBankSelect();
-            }, '旧版术语库');
-        });
-
-        document.getElementById('migrateLearningBtn')?.addEventListener('click', async () => {
-            const learning = JSON.parse(localStorage.getItem(OLD_LEARNING_KEY) || '{}');
-            const terms = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || '[]');
-            const meta = JSON.parse(localStorage.getItem(OLD_META_KEY) || '{"date":"","newCardsIntroduced":0,"reviewsCompleted":0}');
-            showConfirm('为旧学习记录命名（将作为新卡库名称）', async (name) => {
-                const deckNames = await getDeckNames();
-                let finalName = name;
-                if (deckNames.includes(name)) finalName = name + '_' + Date.now().toString().slice(-4);
-                const deckData = {
-                    terms: terms.filter(t => t && t.chinese).map(t => ({chinese: t.chinese, english: t.english})),
-                    learningData: learning,
-                    dailyMeta: meta || { date: getToday(), newCardsIntroduced: 0, reviewsCompleted: 0 }
-                };
-                await saveDeck(finalName, deckData);
-                const allNames = await getDeckNames();
-                allNames.push(finalName);
-                await saveDeckNames(allNames);
-                showToast(`✅ 已导入为卡库「${finalName}」`);
-                migrationDiv.innerHTML = '';
-                localStorage.setItem(MIGRATION_FLAG, 'done');
-                await refreshDeckSelect();
-            }, '旧版学习记录');
-        });
-
-        document.getElementById('deleteOldDataBtn')?.addEventListener('click', () => {
-            showConfirm('确定要删除所有旧数据吗？此操作不可恢复。', () => {
-                localStorage.removeItem(OLD_STORAGE_KEY);
-                localStorage.removeItem(OLD_LEARNING_KEY);
-                localStorage.removeItem(OLD_META_KEY);
-                localStorage.setItem(MIGRATION_FLAG, 'done');
-                migrationDiv.innerHTML = '';
-                showToast('旧数据已删除');
-            });
-        });
+      }
+      return html;
     }
+    container.innerHTML = renderNode(tree, [tree.id], 0);
+    container.querySelectorAll('.folder-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const path = JSON.parse(el.dataset.path);
+        onSelect(path);
+      });
+    });
+  }
 
-    // 提取页
-    let currentExtractPairs = [];
-    function performExtract() {
-        const text = document.getElementById('inputText').value;
-        const lines = text.split('\n');
-        currentExtractPairs = [];
-        for (let line of lines) {
-            const m = line.match(/^(.+?)\s*[—\-–]\s*(.+)$/);
-            if (m) {
-                let cn = m[1].trim(), en = m[2].trim();
-                cn = cn.replace(/^[·\-\•\*\d\.\s]+/, '').trim();
-                en = en.replace(/[。，、；：！？]+$/, '').trim();
-                if (/[\u4e00-\u9fa5]/.test(cn) && /[A-Za-z]/.test(en) && cn.length>0 && en.length>0) {
-                    currentExtractPairs.push({chinese: cn, english: en});
-                }
+  // 提取页
+  let currentExtractPairs = [];
+  function performExtract() {
+    const text = document.getElementById('inputText').value;
+    currentExtractPairs = [];
+    for (let line of text.split('\n')) {
+      const m = line.match(/^(.+?)\s*[—\-–]\s*(.+)$/);
+      if (m) {
+        let cn = m[1].trim(), en = m[2].trim();
+        cn = cn.replace(/^[·\-\•\*\d\.\s]+/, '').trim();
+        en = en.replace(/[。，、；：！？]+$/, '').trim();
+        if (/[\u4e00-\u9fa5]/.test(cn) && /[A-Za-z]/.test(en) && cn && en) {
+          currentExtractPairs.push({chinese: cn, english: en});
+        }
+      }
+    }
+    renderExtractList();
+  }
+  function renderExtractList() {
+    document.getElementById('pairCount').textContent = currentExtractPairs.length + ' 对';
+    document.getElementById('resultBadge').textContent = currentExtractPairs.length;
+    const c = document.getElementById('listContainer');
+    if (!currentExtractPairs.length) { c.innerHTML = '<div class="empty-placeholder">😕 暂无术语</div>'; return; }
+    c.innerHTML = currentExtractPairs.map((p,i) => 
+      `<div class="pair-item"><span class="pair-index">${i+1}</span><div class="pair-content"><span class="pair-chinese">${p.chinese}</span><span class="pair-english">${p.english}</span></div><div class="pair-actions"><button class="delete-btn" data-idx="${i}">✕</button></div></div>`
+    ).join('');
+    c.querySelectorAll('.delete-btn').forEach(b => b.onclick = (e) => {
+      currentExtractPairs.splice(parseInt(e.target.dataset.idx), 1);
+      renderExtractList();
+    });
+  }
+
+  // 检索页
+  function getWordBankByPath(path) {
+    return findNode(wordTree, path);
+  }
+  async function renderSearchResults() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const node = currentWordBankPath ? getWordBankByPath(currentWordBankPath) : null;
+    const terms = (node && node.type === 'bank') ? (node.terms || []) : [];
+    const filtered = terms.filter(t => t.chinese.includes(query) || t.english.toLowerCase().includes(query));
+    document.getElementById('searchBadge').textContent = filtered.length;
+    const c = document.getElementById('searchListContainer');
+    if (!filtered.length) { c.innerHTML = '<div class="empty-placeholder">🔎 无匹配术语</div>'; return; }
+    c.innerHTML = filtered.map((t,i) => {
+      const idx = terms.indexOf(t);
+      return `<div class="pair-item"><span class="pair-index">${i+1}</span><div class="pair-content"><span class="pair-chinese">${t.chinese}</span><span class="pair-english">${t.english}</span></div><div class="pair-actions"><button class="edit-btn" data-idx="${idx}">✏️</button><button class="delete-btn" data-idx="${idx}">✕</button></div></div>`;
+    }).join('');
+    c.querySelectorAll('.delete-btn').forEach(b => b.onclick = async (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const node = getWordBankByPath(currentWordBankPath);
+      const deleted = node.terms.splice(idx, 1)[0];
+      await saveWordTree();
+      // 同步更新卡库
+      await syncTermToDecks(deleted.chinese, null);
+      renderSearchResults();
+      showToast('已删除');
+    });
+    c.querySelectorAll('.edit-btn').forEach(b => b.onclick = async (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const node = getWordBankByPath(currentWordBankPath);
+      const term = node.terms[idx];
+      showConfirm(`编辑术语：<strong>${term.chinese}</strong>`, async (newVal) => {
+        if (!newVal || !newVal.includes(' — ')) return showToast('格式：中文 — 英文');
+        const [cn, en] = newVal.split(' — ').map(s => s.trim());
+        if (!cn || !en) return showToast('格式错误');
+        const oldChinese = term.chinese;
+        term.chinese = cn; term.english = en;
+        await saveWordTree();
+        await syncTermToDecks(oldChinese, term);
+        renderSearchResults();
+        showToast('已更新');
+      }, `${term.chinese} — ${term.english}`);
+    });
+  }
+
+  // 同步术语到所有卡库
+  async function syncTermToDecks(oldChinese, newTerm) {
+    function syncNode(node) {
+      if (node.type === 'bank' && node.terms) {
+        const idx = node.terms.findIndex(t => t.chinese === oldChinese);
+        if (idx >= 0) {
+          if (newTerm) {
+            node.terms[idx] = {chinese: newTerm.chinese, english: newTerm.english};
+            if (node.learningData && node.learningData[oldChinese]) {
+              node.learningData[newTerm.chinese] = node.learningData[oldChinese];
+              delete node.learningData[oldChinese];
             }
+          } else {
+            node.terms.splice(idx, 1);
+            if (node.learningData) delete node.learningData[oldChinese];
+          }
         }
-        renderExtractList();
+      }
+      if (node.children) node.children.forEach(syncNode);
     }
-    function renderExtractList() {
-        document.getElementById('pairCount').textContent = currentExtractPairs.length + ' 对';
-        document.getElementById('resultBadge').textContent = currentExtractPairs.length;
-        const container = document.getElementById('listContainer');
-        if (currentExtractPairs.length === 0) {
-            container.innerHTML = '<div class="empty-placeholder">😕 暂无术语</div>';
-            return;
-        }
-        container.innerHTML = currentExtractPairs.map((p,i) => 
-            `<div class="pair-item"><span class="pair-index">${i+1}</span><div class="pair-content"><span class="pair-chinese">${p.chinese}</span><span class="pair-english">${p.english}</span></div><button class="pair-delete" data-idx="${i}">✕</button></div>`
-        ).join('');
-        container.querySelectorAll('.pair-delete').forEach(b => b.onclick = (e) => {
-            const i = parseInt(e.target.dataset.idx);
-            currentExtractPairs.splice(i,1);
-            renderExtractList();
-        });
-    }
-
-    // 检索页
-    async function refreshWordBankSelect() {
-        const names = await getWordBankNames();
-        const sel = document.getElementById('wordBankSelect');
-        sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
-        if (names.length === 0) {
-            sel.innerHTML = '<option value="">无词库</option>';
-            currentWordBankName = '';
-        } else {
-            if (!names.includes(currentWordBankName)) currentWordBankName = names[0];
-            sel.value = currentWordBankName;
-        }
-        await renderSearchResults();
-    }
-    async function renderSearchResults() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const terms = currentWordBankName ? await getWordBank(currentWordBankName) : [];
-        const filtered = terms.filter(t => t.chinese.includes(query) || t.english.toLowerCase().includes(query));
-        document.getElementById('searchBadge').textContent = filtered.length;
-        const container = document.getElementById('searchListContainer');
-        if (filtered.length === 0) {
-            container.innerHTML = '<div class="empty-placeholder">🔎 无匹配术语</div>';
-            return;
-        }
-        container.innerHTML = filtered.map((t,i) => 
-            `<div class="pair-item"><span class="pair-index">${i+1}</span><div class="pair-content"><span class="pair-chinese">${t.chinese}</span><span class="pair-english">${t.english}</span></div></div>`
-        ).join('');
-    }
-
-    async function importWordBankToDeck() {
-        if (!currentWordBankName) return showToast('请先选择词库');
-        const deckNames = await getDeckNames();
-        if (deckNames.length === 0) return showToast('请先创建卡库');
-        showSelection('选择目标卡库', deckNames, async (deckName) => {
-            const wordTerms = await getWordBank(currentWordBankName);
-            const deck = await getDeck(deckName);
-            let added = 0;
-            for (const t of wordTerms) {
-                if (!deck.terms.some(ex => ex.chinese === t.chinese)) {
-                    deck.terms.push({chinese: t.chinese, english: t.english});
-                    added++;
-                }
-            }
-            await saveDeck(deckName, deck);
-            showToast(`✅ 导入 ${added} 条新术语到「${deckName}」`);
-        });
-    }
-
-    // ==================== 复习页 (修复版) ====================
-    async function refreshDeckSelect() {
-        const names = await getDeckNames();
-        const sel = document.getElementById('deckSelect');
-        sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
-        if (names.length === 0) {
-            sel.innerHTML = '<option value="">无卡库</option>';
-            currentDeckName = '';
-        } else {
-            if (!names.includes(currentDeckName)) currentDeckName = names[0];
-            sel.value = currentDeckName;
-        }
-        await loadDeckAndReview();
-    }
-
-    let reviewQueue = [];
-    let deckData = null;
-    let sessionNewCardsCount = 0; // 本次会话已引入的新卡片数
-
-    async function loadDeckAndReview() {
-        if (!currentDeckName) {
-            document.getElementById('reviewEmptyState').style.display='block';
-            return;
-        }
-        deckData = await getDeck(currentDeckName);
-        const today = getToday();
-        // 重置每日计数（如果是新的一天）
-        if (deckData.dailyMeta.date !== today) {
-            deckData.dailyMeta = { date: today, newCardsIntroduced: 0, reviewsCompleted: 0 };
-            await saveDeck(currentDeckName, deckData);
-        }
-        sessionNewCardsCount = deckData.dailyMeta.newCardsIntroduced; // 从已保存的计数开始
+    syncNode(deckTree);
+    await saveDeckTree();
+    // 如果当前复习页打开且是当前卡库，刷新
+    if (document.getElementById('reviewPanel').classList.contains('active') && currentDeckPath) {
+      deckData = getDeckByPath(currentDeckPath);
+      if (deckData) {
         buildQueue();
         updateDeckStats();
-        if (reviewQueue.length === 0) {
-            document.getElementById('reviewEmptyState').style.display='block';
-            document.getElementById('cardStage').style.display='none';
-            document.getElementById('ratingButtons').style.display='none';
-            document.getElementById('reviewActionsRow').style.display='none';
-            document.getElementById('reviewComplete').style.display='none';
-        } else {
-            document.getElementById('reviewEmptyState').style.display='none';
-            document.getElementById('reviewComplete').style.display='none';
-            showCard();
-        }
-    }
-
-    function buildQueue() {
-        const today = getToday();
-        const due = [];
-        const seen = new Set();
-        
-        // 收集到期卡片
-        for (const [cn, state] of Object.entries(deckData.learningData)) {
-            if (state.nextReview && state.nextReview <= today) {
-                due.push({chinese: cn, state, isNew: false});
-                seen.add(cn);
-            }
-        }
-        
-        // 收集新卡片（基于每日限额）
-        const newCards = [];
-        const remainingSlots = Math.max(0, dailyNewCardsLimit - sessionNewCardsCount);
-        
-        if (remainingSlots > 0) {
-            for (const t of deckData.terms) {
-                if (newCards.length >= remainingSlots) break;
-                if (!seen.has(t.chinese) && !deckData.learningData[t.chinese]) {
-                    newCards.push({chinese: t.chinese, state: null, isNew: true});
-                    seen.add(t.chinese);
-                }
-            }
-        }
-        
-        reviewQueue = [...due, ...newCards];
-    }
-
-    function updateDeckStats() {
-        const dueCount = reviewQueue.filter(c => !c.isNew).length;
-        const newCount = reviewQueue.filter(c => c.isNew).length;
-        document.getElementById('statDue').textContent = `待复习 ${dueCount}`;
-        document.getElementById('statNew').textContent = `新卡 ${newCount}`;
-        document.getElementById('statDone').textContent = `已完成 ${deckData.dailyMeta.reviewsCompleted}`;
-        document.getElementById('statTotal').textContent = `总计 ${deckData.terms.length}`;
-    }
-
-    function showCard() {
-        if (reviewQueue.length === 0) {
-            document.getElementById('reviewComplete').style.display='block';
-            document.getElementById('cardStage').style.display='none';
-            document.getElementById('ratingButtons').style.display='none';
-            document.getElementById('reviewActionsRow').style.display='none';
-            return;
-        }
-        const card = reviewQueue[0];
-        document.getElementById('cardStage').style.display='block';
-        document.getElementById('ratingButtons').style.display='flex';
-        document.getElementById('reviewActionsRow').style.display='flex';
-        document.getElementById('cardInner').classList.remove('flipped');
-        document.querySelectorAll('.rating-btn').forEach(b => b.disabled = true);
-        const term = deckData.terms.find(t => t.chinese === card.chinese);
-        document.getElementById('cardChineseTerm').textContent = card.chinese;
-        document.getElementById('cardEnglishTerm').textContent = term ? term.english : '—';
-        document.getElementById('cardHintInfo').textContent = card.state ? `复习${card.state.totalReviews||0}次` : '新卡片';
-    }
-
-    function flipCard() {
-        document.getElementById('cardInner').classList.add('flipped');
-        document.querySelectorAll('.rating-btn').forEach(b => b.disabled = false);
-    }
-
-    function rateCard(rating) {
-        if (reviewQueue.length === 0) return;
-        const card = reviewQueue.shift();
-        
-        // 如果是新卡片且不是重来，增加新卡片计数
-        if (card.isNew && rating !== 'again' && rating !== 'bury' && rating !== 'delete') {
-            sessionNewCardsCount++;
-            deckData.dailyMeta.newCardsIntroduced = sessionNewCardsCount;
-        }
-        
-        if (rating === 'again') {
-            const newState = calcNextInterval(card.state, 'again');
-            deckData.learningData[card.chinese] = newState;
-            reviewQueue.push({chinese: card.chinese, state: newState, isNew: false});
-        } else if (rating === 'bury') {
-            const state = card.state || {interval:0, ease:2.5, repetitions:0, nextReview:'', totalReviews:0};
-            const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
-            state.nextReview = tomorrow.toISOString().slice(0,10);
-            deckData.learningData[card.chinese] = state;
-            deckData.dailyMeta.reviewsCompleted++;
-        } else if (rating === 'delete') {
-            deckData.terms = deckData.terms.filter(t => t.chinese !== card.chinese);
-            delete deckData.learningData[card.chinese];
-            deckData.dailyMeta.reviewsCompleted++;
-        } else {
-            const newState = calcNextInterval(card.state, rating);
-            deckData.learningData[card.chinese] = newState;
-            deckData.dailyMeta.reviewsCompleted++;
-        }
-        
-        saveDeck(currentDeckName, deckData);
-        updateDeckStats();
-        showCard();
-    }
-
-    function calcNextInterval(state, rating) {
-        const s = state ? {...state} : {interval:0, ease:2.5, repetitions:0, nextReview:'', totalReviews:0};
-        s.totalReviews = (s.totalReviews||0)+1;
-        const isNew = !state || s.repetitions===0;
-        if (isNew) {
-            if (rating==='again') s.interval=0;
-            else if (rating==='hard') s.interval=1;
-            else if (rating==='good') { s.interval=1; s.repetitions=1; }
-            else if (rating==='easy') { s.interval=4; s.repetitions=1; }
-        } else {
-            if (rating==='again') { s.interval=0; s.ease=Math.max(1.3, s.ease-0.2); s.repetitions=0; }
-            else if (rating==='hard') { s.interval=Math.max(1, Math.round(s.interval*1.2)); s.ease=Math.max(1.3, s.ease-0.15); s.repetitions=0; }
-            else if (rating==='good') { s.interval=Math.round(s.interval*s.ease); s.repetitions++; }
-            else if (rating==='easy') { s.interval=Math.round(s.interval*s.ease*1.3); s.ease+=0.15; s.repetitions++; }
-        }
-        if (s.interval===0) s.nextReview = getToday();
+        if (reviewQueue.length) showCard();
         else {
-            const d = new Date(); d.setDate(d.getDate()+s.interval);
-            s.nextReview = d.toISOString().slice(0,10);
+          document.getElementById('reviewComplete').style.display='block';
+          document.getElementById('cardStage').style.display='none';
         }
-        return s;
+      }
     }
+  }
 
-    async function resetDeckProgress() {
-        if (!currentDeckName) return;
-        showConfirm('确定要重置当前卡库的学习进度吗？（保留术语）', async () => {
-            deckData.learningData = {};
-            deckData.dailyMeta = { date: getToday(), newCardsIntroduced: 0, reviewsCompleted: 0 };
-            sessionNewCardsCount = 0;
-            await saveDeck(currentDeckName, deckData);
-            showToast('学习进度已重置');
-            await loadDeckAndReview();
-        });
+  // 复习页
+  function getDeckByPath(path) {
+    return findNode(deckTree, path);
+  }
+  async function loadDeckAndReview() {
+    if (!currentDeckPath) {
+      document.getElementById('reviewEmptyState').style.display='block';
+      return;
     }
+    deckData = getDeckByPath(currentDeckPath);
+    if (!deckData || deckData.type !== 'bank') return;
+    deckData.learningData = deckData.learningData || {};
+    deckData.dailyMeta = deckData.dailyMeta || { date: '', newCardsIntroduced: 0, reviewsCompleted: 0 };
+    const today = getToday();
+    if (deckData.dailyMeta.date !== today) {
+      deckData.dailyMeta = { date: today, newCardsIntroduced: 0, reviewsCompleted: 0 };
+      await saveDeckTree();
+    }
+    sessionNewCardsCount = deckData.dailyMeta.newCardsIntroduced;
+    buildQueue();
+    updateDeckStats();
+    if (!reviewQueue.length) {
+      document.getElementById('reviewEmptyState').style.display='block';
+      document.getElementById('cardStage').style.display='none';
+      document.getElementById('ratingButtons').style.display='none';
+      document.getElementById('reviewActionsRow').style.display='none';
+      document.getElementById('reviewComplete').style.display='none';
+    } else {
+      document.getElementById('reviewEmptyState').style.display='none';
+      document.getElementById('reviewComplete').style.display='none';
+      showCard();
+    }
+  }
 
-    // 事件绑定
-    document.getElementById('tabExtract').onclick = () => switchTab('extract');
-    document.getElementById('tabSearch').onclick = () => switchTab('search');
-    document.getElementById('tabReview').onclick = () => switchTab('review');
-    document.getElementById('extractBtn').onclick = performExtract;
-    document.getElementById('clearBtn').onclick = () => { document.getElementById('inputText').value=''; currentExtractPairs=[]; renderExtractList(); };
-    document.getElementById('saveBtn').onclick = async () => {
-        if (currentExtractPairs.length===0) return showToast('没有可保存的术语');
-        const names = await getWordBankNames();
-        showSelection('选择目标词库', [...names, '【新建词库】'], async (sel) => {
-            if (sel === '【新建词库】') {
-                showConfirm('输入新词库名称', async (name) => {
-                    if (!name) return;
-                    const existing = await getWordBankNames();
-                    if (existing.includes(name)) return showToast('词库已存在');
-                    const terms = [];
-                    let added = 0;
-                    for (const p of currentExtractPairs) {
-                        if (!terms.some(t => t.chinese === p.chinese)) { terms.push(p); added++; }
-                    }
-                    await saveWordBank(name, terms);
-                    const all = await getWordBankNames();
-                    all.push(name); await saveWordBankNames(all);
-                    showToast(`✅ 已保存 ${added} 条到「${name}」`);
-                    currentWordBankName = name;
-                    await refreshWordBankSelect();
-                }, '新词库');
-            } else {
-                const terms = await getWordBank(sel);
-                let added = 0;
-                for (const p of currentExtractPairs) {
-                    if (!terms.some(t => t.chinese === p.chinese)) { terms.push(p); added++; }
-                }
-                await saveWordBank(sel, terms);
-                showToast(`✅ 已保存 ${added} 条到「${sel}」`);
-                currentWordBankName = sel;
-                await refreshWordBankSelect();
-            }
-        });
-    };
-    document.getElementById('newWordBankBtn').onclick = async () => {
-        showConfirm('新建词库名称', async (name) => {
-            const names = await getWordBankNames();
-            if (names.includes(name)) return showToast('词库已存在');
-            await saveWordBank(name, []);
-            names.push(name); await saveWordBankNames(names);
-            currentWordBankName = name;
-            await refreshWordBankSelect();
-        }, '新词库');
-    };
-    document.getElementById('deleteWordBankBtn').onclick = async () => {
-        if (!currentWordBankName) return;
-        showConfirm(`确定删除词库「${currentWordBankName}」及其所有术语吗？`, async () => {
-            await deleteWordBank(currentWordBankName);
-            currentWordBankName = '';
-            await refreshWordBankSelect();
-            showToast('词库已删除');
-        });
-    };
-    document.getElementById('wordBankSelect').onchange = async (e) => {
-        currentWordBankName = e.target.value;
-        await renderSearchResults();
-    };
-    document.getElementById('searchInput').oninput = () => renderSearchResults();
-    document.getElementById('importToDeckBtn').onclick = importWordBankToDeck;
-    document.getElementById('exportWordBankBtn').onclick = async () => {
-        if (!currentWordBankName) return;
-        const terms = await getWordBank(currentWordBankName);
-        const blob = new Blob([JSON.stringify({bankName: currentWordBankName, terms})], {type:'application/json'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentWordBankName}.json`; a.click();
-    };
-    document.getElementById('importWordBankBtn').onclick = () => document.getElementById('importFileInput').click();
-    document.getElementById('importFileInput').onchange = async (e) => {
-        const file = e.target.files[0]; if(!file) return;
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            try {
-                const data = JSON.parse(ev.target.result);
-                const terms = data.terms || [];
-                let name = data.bankName || '导入词库';
-                let names = await getWordBankNames();
-                if (names.includes(name)) name += '_'+Date.now();
-                await saveWordBank(name, terms);
-                names.push(name); await saveWordBankNames(names);
-                currentWordBankName = name;
-                await refreshWordBankSelect();
-                showToast(`导入词库「${name}」成功`);
-            } catch (ex) { showToast('文件格式错误'); }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-    };
+  function buildQueue() {
+    const today = getToday();
+    const due = []; const seen = new Set();
+    for (const [cn, state] of Object.entries(deckData.learningData || {})) {
+      if (state.nextReview && state.nextReview <= today) {
+        due.push({chinese: cn, state, isNew: false});
+        seen.add(cn);
+      }
+    }
+    const remaining = Math.max(0, dailyNewCardsLimit - sessionNewCardsCount);
+    const newCards = [];
+    for (const t of (deckData.terms || [])) {
+      if (newCards.length >= remaining) break;
+      if (!seen.has(t.chinese) && !(deckData.learningData || {})[t.chinese]) {
+        newCards.push({chinese: t.chinese, state: null, isNew: true});
+        seen.add(t.chinese);
+      }
+    }
+    reviewQueue = [...due, ...newCards];
+  }
 
-    // 复习页事件
-    document.getElementById('newDeckBtn').onclick = async () => {
-        showConfirm('新建卡库名称', async (name) => {
-            const names = await getDeckNames();
-            if (names.includes(name)) return showToast('卡库已存在');
-            await saveDeck(name, {terms:[], learningData:{}, dailyMeta:{date:getToday(), newCardsIntroduced:0, reviewsCompleted:0}});
-            names.push(name); await saveDeckNames(names);
-            currentDeckName = name;
-            await refreshDeckSelect();
-        }, '新卡库');
-    };
-    document.getElementById('deleteDeckBtn').onclick = async () => {
-        if (!currentDeckName) return;
-        showConfirm(`删除卡库「${currentDeckName}」及其学习数据？`, async () => {
-            await deleteDeck(currentDeckName);
-            currentDeckName = '';
-            await refreshDeckSelect();
-        });
-    };
-    document.getElementById('resetDeckProgressBtn').onclick = resetDeckProgress;
-    document.getElementById('deckSelect').onchange = async (e) => {
-        currentDeckName = e.target.value;
-        await loadDeckAndReview();
-    };
-    document.getElementById('cardStage').onclick = () => { if (reviewQueue.length && !document.getElementById('cardInner').classList.contains('flipped')) flipCard(); };
-    document.querySelectorAll('.rating-btn').forEach(b => b.onclick = (e) => { if (!e.target.disabled) rateCard(e.target.dataset.rating); });
-    document.getElementById('buryCardBtn').onclick = () => rateCard('bury');
-    document.getElementById('deleteCardBtn').onclick = () => rateCard('delete');
-    document.getElementById('saveDailyLimitBtn').onclick = async () => {
-        const val = parseInt(document.getElementById('dailyLimitInput').value);
-        if (isNaN(val) || val<1) return;
-        dailyNewCardsLimit = val;
-        await saveSettings();
-        showToast('已保存每日新卡上限');
-    };
-    document.addEventListener('keydown', (e) => {
-        if (!document.getElementById('reviewPanel').classList.contains('active')) return;
-        if (reviewQueue.length===0) return;
-        if (e.key === ' ' && !document.getElementById('cardInner').classList.contains('flipped')) { e.preventDefault(); flipCard(); }
-        else if (document.getElementById('cardInner').classList.contains('flipped')) {
-            if (e.key==='1') rateCard('again');
-            else if (e.key==='2') rateCard('hard');
-            else if (e.key==='3') rateCard('good');
-            else if (e.key==='4') rateCard('easy');
-            else if (e.key==='b') rateCard('bury');
-        }
+  function updateDeckStats() {
+    document.getElementById('statDue').textContent = `待复习 ${reviewQueue.filter(c=>!c.isNew).length}`;
+    document.getElementById('statNew').textContent = `新卡 ${reviewQueue.filter(c=>c.isNew).length}`;
+    document.getElementById('statDone').textContent = `已完成 ${deckData.dailyMeta?.reviewsCompleted||0}`;
+    document.getElementById('statTotal').textContent = `总计 ${(deckData.terms||[]).length}`;
+  }
+
+  function showCard() {
+    if (!reviewQueue.length) {
+      document.getElementById('reviewComplete').style.display='block';
+      document.getElementById('cardStage').style.display='none';
+      document.getElementById('ratingButtons').style.display='none';
+      document.getElementById('reviewActionsRow').style.display='none';
+      return;
+    }
+    const card = reviewQueue[0];
+    document.getElementById('cardStage').style.display='block';
+    document.getElementById('ratingButtons').style.display='flex';
+    document.getElementById('reviewActionsRow').style.display='flex';
+    document.getElementById('cardInner').classList.remove('flipped');
+    document.querySelectorAll('.rating-btn').forEach(b => b.disabled = true);
+    const term = (deckData.terms||[]).find(t => t.chinese === card.chinese);
+    document.getElementById('cardChineseTerm').textContent = card.chinese;
+    document.getElementById('cardEnglishTerm').textContent = term ? term.english : '—';
+    document.getElementById('cardHintInfo').textContent = card.state ? `已复习${card.state.totalReviews||0}次` : '新卡片';
+    // 更新间隔显示
+    updateIntervalDisplay(card.state);
+  }
+
+  function updateIntervalDisplay(state) {
+    const ratings = ['again', 'hard', 'good', 'easy'];
+    const labels = ['againInterval', 'hardInterval', 'goodInterval', 'easyInterval'];
+    ratings.forEach((r, i) => {
+      const interval = calcNextInterval(state, r).interval;
+      document.getElementById(labels[i]).textContent = interval === 0 ? '≤1min' : interval === 1 ? '1天' : interval < 30 ? interval+'天' : Math.round(interval/30)+'月';
     });
+  }
 
-    function switchTab(tab) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        if (tab==='extract') {
-            document.getElementById('tabExtract').classList.add('active');
-            document.getElementById('extractPanel').classList.add('active');
-        } else if (tab==='search') {
-            document.getElementById('tabSearch').classList.add('active');
-            document.getElementById('searchPanel').classList.add('active');
-            refreshWordBankSelect();
-        } else {
-            document.getElementById('tabReview').classList.add('active');
-            document.getElementById('reviewPanel').classList.add('active');
-            refreshDeckSelect();
-        }
+  function flipCard() {
+    document.getElementById('cardInner').classList.add('flipped');
+    document.querySelectorAll('.rating-btn').forEach(b => b.disabled = false);
+  }
+
+  function calcNextInterval(state, rating) {
+    const s = state ? {...state} : {interval:0, ease:2.5, repetitions:0, nextReview:'', totalReviews:0};
+    s.totalReviews = (s.totalReviews||0)+1;
+    const isNew = !state || s.repetitions===0;
+    if (isNew) {
+      if (rating==='again') s.interval=0;
+      else if (rating==='hard') s.interval=1;
+      else if (rating==='good') { s.interval=1; s.repetitions=1; }
+      else { s.interval=4; s.repetitions=1; }
+    } else {
+      if (rating==='again') { s.interval=0; s.ease=Math.max(1.3,s.ease-0.2); s.repetitions=0; }
+      else if (rating==='hard') { s.interval=Math.max(1,Math.round(s.interval*1.2)); s.ease=Math.max(1.3,s.ease-0.15); s.repetitions=0; }
+      else if (rating==='good') { s.interval=Math.round(s.interval*s.ease); s.repetitions++; }
+      else { s.interval=Math.round(s.interval*s.ease*1.3); s.ease+=0.15; s.repetitions++; }
     }
+    s.nextReview = getToday();
+    if (s.interval > 0) {
+      const d = new Date(); d.setDate(d.getDate()+s.interval);
+      s.nextReview = d.toISOString().slice(0,10);
+    }
+    return s;
+  }
 
-    window.onload = async () => {
-        await openDB();
-        await loadSettings();
-        await checkAndMigrateOldData();
-        const wbNames = await getWordBankNames();
-        if (wbNames.length) currentWordBankName = wbNames[0];
-        await refreshWordBankSelect();
-        const dNames = await getDeckNames();
-        if (dNames.length) currentDeckName = dNames[0];
-        await refreshDeckSelect();
+  async function rateCard(rating) {
+    if (!reviewQueue.length) return;
+    const card = reviewQueue.shift();
+    if (card.isNew && rating !== 'again' && rating !== 'bury' && rating !== 'delete') {
+      sessionNewCardsCount++;
+      deckData.dailyMeta.newCardsIntroduced = sessionNewCardsCount;
+    }
+    if (rating === 'again') {
+      const ns = calcNextInterval(card.state, 'again');
+      deckData.learningData[card.chinese] = ns;
+      reviewQueue.push({chinese: card.chinese, state: ns, isNew: false});
+    } else if (rating === 'bury') {
+      const s = card.state || {interval:0, ease:2.5, repetitions:0, nextReview:'', totalReviews:0};
+      const d = new Date(); d.setDate(d.getDate()+1);
+      s.nextReview = d.toISOString().slice(0,10);
+      deckData.learningData[card.chinese] = s;
+      deckData.dailyMeta.reviewsCompleted++;
+    } else if (rating === 'delete') {
+      deckData.terms = (deckData.terms||[]).filter(t => t.chinese !== card.chinese);
+      delete deckData.learningData[card.chinese];
+      deckData.dailyMeta.reviewsCompleted++;
+    } else {
+      deckData.learningData[card.chinese] = calcNextInterval(card.state, rating);
+      deckData.dailyMeta.reviewsCompleted++;
+    }
+    await saveDeckTree();
+    updateDeckStats();
+    showCard();
+  }
+
+  // 事件绑定
+  document.getElementById('tabExtract').onclick = () => switchTab('extract');
+  document.getElementById('tabSearch').onclick = () => switchTab('search');
+  document.getElementById('tabReview').onclick = () => switchTab('review');
+  document.getElementById('extractBtn').onclick = performExtract;
+  document.getElementById('clearBtn').onclick = () => { document.getElementById('inputText').value=''; currentExtractPairs=[]; renderExtractList(); };
+  document.getElementById('saveBtn').onclick = async () => {
+    if (!currentExtractPairs.length) return showToast('无术语');
+    // 选择一个词库保存
+    const banks = [];
+    function collectBanks(node, path) {
+      if (node.type === 'bank') banks.push({path, name: node.name});
+      if (node.children) node.children.forEach(c => collectBanks(c, [...path, c.id]));
+    }
+    collectBanks(wordTree, [wordTree.id]);
+    if (!banks.length) return showToast('请先在检索页创建词库');
+    const options = banks.map(b => b.name);
+    showSelection('选择目标词库', options, async (selName) => {
+      const bank = banks.find(b => b.name === selName);
+      if (!bank) return;
+      const node = getWordBankByPath(bank.path);
+      if (!node || node.type !== 'bank') return;
+      node.terms = node.terms || [];
+      let added = 0;
+      for (const p of currentExtractPairs) {
+        if (!node.terms.some(t => t.chinese === p.chinese)) {
+          node.terms.push(p); added++;
+        }
+      }
+      await saveWordTree();
+      showToast(`✅ 已保存 ${added} 条`);
+    });
+  };
+  function showSelection(title, options, cb) {
+    const overlay = document.createElement('div'); overlay.className='confirm-overlay';
+    overlay.innerHTML = `<div class="confirm-dialog"><p>${title}</p><select id="sel" style="width:100%;padding:10px;border-radius:12px;border:1px solid #dce5f0;margin-bottom:12px;">${options.map(o=>`<option>${o}</option>`).join('')}</select><div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
+    overlay.querySelector('.ok').onclick = ()=> { cb(overlay.querySelector('#sel').value); overlay.remove(); };
+  }
+
+  // 检索页文件夹操作
+  document.getElementById('newFolderBtn').onclick = async () => {
+    showConfirm('新建文件夹名称', async (name) => {
+      const parent = currentWordBankPath ? getWordBankByPath(currentWordBankPath) : wordTree;
+      if (!parent || parent.type !== 'folder') return showToast('请选中一个文件夹');
+      parent.children = parent.children || [];
+      parent.children.push({ id: generateId(), name, type: 'folder', children: [] });
+      await saveWordTree();
+      renderWordTree();
+    }, '新文件夹');
+  };
+  document.getElementById('newWordBankBtn').onclick = async () => {
+    showConfirm('新建词库名称', async (name) => {
+      const parent = currentWordBankPath ? getWordBankByPath(currentWordBankPath) : wordTree;
+      if (!parent || parent.type !== 'folder') return showToast('请选中一个文件夹');
+      parent.children = parent.children || [];
+      parent.children.push({ id: generateId(), name, type: 'bank', terms: [] });
+      await saveWordTree();
+      renderWordTree();
+    }, '新词库');
+  };
+  document.getElementById('deleteSelectedBtn').onclick = async () => {
+    if (!currentWordBankPath || currentWordBankPath.length <= 1) return showToast('不能删除根目录');
+    const node = getWordBankByPath(currentWordBankPath);
+    showConfirm(`确定删除「${node.name}」吗？`, async () => {
+      deleteNode(wordTree, currentWordBankPath);
+      await saveWordTree();
+      currentWordBankPath = null;
+      renderWordTree();
+      document.getElementById('searchListContainer').innerHTML = '<div class="empty-placeholder">请选择词库</div>';
+    });
+  };
+  document.getElementById('searchInput').oninput = () => renderSearchResults();
+  document.getElementById('importToDeckBtn').onclick = async () => {
+    if (!currentWordBankPath) return showToast('请选择词库');
+    const node = getWordBankByPath(currentWordBankPath);
+    if (!node || node.type !== 'bank') return showToast('请选择词库');
+    const banks = [];
+    function collect(node, path) {
+      if (node.type === 'bank') banks.push({path, name: node.name});
+      if (node.children) node.children.forEach(c => collect(c, [...path, c.id]));
+    }
+    collect(deckTree, [deckTree.id]);
+    if (!banks.length) return showToast('请先创建卡库');
+    showSelection('选择目标卡库', banks.map(b => b.name), async (selName) => {
+      const bank = banks.find(b => b.name === selName);
+      if (!bank) return;
+      const deck = getDeckByPath(bank.path);
+      deck.terms = deck.terms || [];
+      let added = 0;
+      for (const t of (node.terms || [])) {
+        if (!deck.terms.some(ex => ex.chinese === t.chinese)) {
+          deck.terms.push({chinese: t.chinese, english: t.english});
+          added++;
+        }
+      }
+      await saveDeckTree();
+      showToast(`✅ 导入 ${added} 条到「${selName}」`);
+    });
+  };
+  document.getElementById('exportWordBankBtn').onclick = async () => {
+    if (!currentWordBankPath) return;
+    const node = getWordBankByPath(currentWordBankPath);
+    if (!node || node.type !== 'bank') return;
+    const blob = new Blob([JSON.stringify({name: node.name, terms: node.terms||[]})], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${node.name}.json`; a.click();
+  };
+  document.getElementById('importWordBankBtn').onclick = () => document.getElementById('importFileInput').click();
+  document.getElementById('importFileInput').onchange = async (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        const parent = currentWordBankPath ? getWordBankByPath(currentWordBankPath) : wordTree;
+        if (!parent || parent.type !== 'folder') return showToast('请选中文件夹');
+        parent.children = parent.children || [];
+        parent.children.push({ id: generateId(), name: data.name || '导入词库', type: 'bank', terms: data.terms || [] });
+        await saveWordTree();
+        renderWordTree();
+        showToast('导入成功');
+      } catch(ex) { showToast('文件格式错误'); }
     };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // 复习页文件夹操作
+  document.getElementById('newDeckFolderBtn').onclick = async () => {
+    showConfirm('新建文件夹名称', async (name) => {
+      const parent = currentDeckPath ? getDeckByPath(currentDeckPath) : deckTree;
+      if (!parent || parent.type !== 'folder') return showToast('请选中文件夹');
+      parent.children = parent.children || [];
+      parent.children.push({ id: generateId(), name, type: 'folder', children: [] });
+      await saveDeckTree();
+      renderDeckTree();
+    }, '新文件夹');
+  };
+  document.getElementById('newDeckBtn').onclick = async () => {
+    showConfirm('新建卡库名称', async (name) => {
+      const parent = currentDeckPath ? getDeckByPath(currentDeckPath) : deckTree;
+      if (!parent || parent.type !== 'folder') return showToast('请选中文件夹');
+      parent.children = parent.children || [];
+      parent.children.push({ id: generateId(), name, type: 'bank', terms: [], learningData: {}, dailyMeta: { date: getToday(), newCardsIntroduced: 0, reviewsCompleted: 0 } });
+      await saveDeckTree();
+      renderDeckTree();
+    }, '新卡库');
+  };
+  document.getElementById('deleteDeckSelectedBtn').onclick = async () => {
+    if (!currentDeckPath || currentDeckPath.length <= 1) return showToast('不能删除根目录');
+    const node = getDeckByPath(currentDeckPath);
+    showConfirm(`确定删除「${node.name}」吗？`, async () => {
+      deleteNode(deckTree, currentDeckPath);
+      await saveDeckTree();
+      currentDeckPath = null;
+      renderDeckTree();
+      document.getElementById('reviewEmptyState').style.display='block';
+      document.getElementById('cardStage').style.display='none';
+    });
+  };
+  document.getElementById('resetDeckProgressBtn').onclick = async () => {
+    if (!currentDeckPath) return;
+    const node = getDeckByPath(currentDeckPath);
+    if (!node || node.type !== 'bank') return;
+    showConfirm('重置学习进度？', async () => {
+      node.learningData = {};
+      node.dailyMeta = { date: getToday(), newCardsIntroduced: 0, reviewsCompleted: 0 };
+      sessionNewCardsCount = 0;
+      await saveDeckTree();
+      deckData = node;
+      buildQueue();
+      updateDeckStats();
+      showCard();
+      showToast('进度已重置');
+    });
+  };
+  document.getElementById('cardStage').onclick = () => { if (reviewQueue.length && !document.getElementById('cardInner').classList.contains('flipped')) flipCard(); };
+  document.querySelectorAll('.rating-btn').forEach(b => b.onclick = (e) => { if (!e.target.disabled) rateCard(e.target.dataset.rating); });
+  document.getElementById('buryCardBtn').onclick = () => rateCard('bury');
+  document.getElementById('deleteCardBtn').onclick = () => rateCard('delete');
+  document.getElementById('saveDailyLimitBtn').onclick = async () => {
+    const v = parseInt(document.getElementById('dailyLimitInput').value);
+    if (isNaN(v) || v<1) return;
+    dailyNewCardsLimit = v;
+    await saveSettings();
+    showToast('已保存');
+  };
+  document.addEventListener('keydown', (e) => {
+    if (!document.getElementById('reviewPanel').classList.contains('active')) return;
+    if (!reviewQueue.length) return;
+    if (e.key===' ' && !document.getElementById('cardInner').classList.contains('flipped')) { e.preventDefault(); flipCard(); }
+    else if (document.getElementById('cardInner').classList.contains('flipped')) {
+      if (e.key==='1') rateCard('again');
+      else if (e.key==='2') rateCard('hard');
+      else if (e.key==='3') rateCard('good');
+      else if (e.key==='4') rateCard('easy');
+      else if (e.key==='b') rateCard('bury');
+    }
+  });
+
+  function renderWordTree() {
+    renderFolderTree('wordFolderTree', wordTree, currentWordBankPath, (path) => {
+      currentWordBankPath = path;
+      renderWordTree();
+      const node = getWordBankByPath(path);
+      if (node && node.type === 'bank') {
+        renderSearchResults();
+      } else {
+        document.getElementById('searchListContainer').innerHTML = '<div class="empty-placeholder">📁 请选择一个词库</div>';
+        document.getElementById('searchBadge').textContent = '0';
+      }
+    });
+  }
+  function renderDeckTree() {
+    renderFolderTree('deckFolderTree', deckTree, currentDeckPath, async (path) => {
+      currentDeckPath = path;
+      renderDeckTree();
+      const node = getDeckByPath(path);
+      if (node && node.type === 'bank') {
+        await loadDeckAndReview();
+      } else {
+        document.getElementById('reviewEmptyState').style.display='block';
+        document.getElementById('cardStage').style.display='none';
+        document.getElementById('ratingButtons').style.display='none';
+        document.getElementById('reviewActionsRow').style.display='none';
+        document.getElementById('reviewComplete').style.display='none';
+      }
+    });
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    if (tab==='extract') {
+      document.getElementById('tabExtract').classList.add('active');
+      document.getElementById('extractPanel').classList.add('active');
+    } else if (tab==='search') {
+      document.getElementById('tabSearch').classList.add('active');
+      document.getElementById('searchPanel').classList.add('active');
+      renderWordTree();
+    } else {
+      document.getElementById('tabReview').classList.add('active');
+      document.getElementById('reviewPanel').classList.add('active');
+      renderDeckTree();
+    }
+  }
+
+  // 旧数据迁移
+  async function checkMigration() {
+    const oldTerms = JSON.parse(localStorage.getItem('terminology_saved_pairs') || 'null');
+    const oldLearning = JSON.parse(localStorage.getItem('terminology_learning_data') || 'null');
+    if (!oldTerms && !oldLearning) return;
+    if (localStorage.getItem('v5_migrated')) return;
+    const area = document.getElementById('migrationArea');
+    let html = '<div class="migration-dialog"><h3>📦 检测到旧版数据</h3>';
+    if (oldTerms?.length) html += `<p>📚 旧术语：${oldTerms.length} 条</p>`;
+    if (oldLearning) html += `<p>🧠 旧学习记录</p>`;
+    html += '<div class="btn-group" style="margin-top:8px;">';
+    if (oldTerms?.length) html += '<button class="btn btn-save btn-small" id="migrateTermsBtn">导入术语</button>';
+    if (oldLearning) html += '<button class="btn btn-primary btn-small" id="migrateLearningBtn">导入学习记录</button>';
+    html += '<button class="btn btn-danger btn-small" id="deleteOldBtn">删除旧数据</button></div></div>';
+    area.innerHTML = html;
+    document.getElementById('migrateTermsBtn')?.addEventListener('click', async () => {
+      const terms = JSON.parse(localStorage.getItem('terminology_saved_pairs')||'[]');
+      wordTree.children.push({ id: generateId(), name: '旧版词库', type: 'bank', terms });
+      await saveWordTree();
+      localStorage.setItem('v5_migrated','1');
+      area.innerHTML = '';
+      showToast('术语已导入');
+      renderWordTree();
+    });
+    document.getElementById('migrateLearningBtn')?.addEventListener('click', async () => {
+      const learning = JSON.parse(localStorage.getItem('terminology_learning_data')||'{}');
+      const terms = JSON.parse(localStorage.getItem('terminology_saved_pairs')||'[]');
+      deckTree.children.push({ id: generateId(), name: '旧版卡库', type: 'bank', terms, learningData: learning, dailyMeta: { date: getToday(), newCardsIntroduced: 0, reviewsCompleted: 0 } });
+      await saveDeckTree();
+      localStorage.setItem('v5_migrated','1');
+      area.innerHTML = '';
+      showToast('学习记录已导入');
+      renderDeckTree();
+    });
+    document.getElementById('deleteOldBtn')?.addEventListener('click', () => {
+      showConfirm('确定删除旧数据？', () => {
+        localStorage.removeItem('terminology_saved_pairs');
+        localStorage.removeItem('terminology_learning_data');
+        localStorage.removeItem('terminology_daily_meta');
+        localStorage.setItem('v5_migrated','1');
+        area.innerHTML = '';
+        showToast('旧数据已删除');
+      });
+    });
+  }
+
+  await openDB();
+  await loadTrees();
+  await loadSettings();
+  await checkMigration();
+  renderExtractList();
+  document.getElementById('searchListContainer').innerHTML = '<div class="empty-placeholder">📁 请选择词库</div>';
 })();
 </script>
 </body>
