@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>中英术语库 · 多库管理 (V4.6 修复新卡计数)</title>
+    <title>中英术语库 · 多库管理 (V4.6 修复新卡计数 + 智能检索)</title>
+    <!-- 引入强大的拼音库，实现一劳永逸的拼音首字母搜索 -->
+    <script src="https://unpkg.com/pinyin-pro"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #f0f4fb; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px 40px; margin: 0; }
@@ -39,8 +41,6 @@
         .pair-chinese { color: #09315a; font-weight: 540; background: #e2edfe; padding: 2px 16px 2px 10px; border-radius: 30px; display: inline-block; align-self: flex-start; font-size: 0.95rem; }
         .pair-english { color: #1a3c62; background: #deeafb; padding: 2px 16px 2px 10px; border-radius: 30px; display: inline-block; align-self: flex-start; font-size: 0.95rem; }
         .pair-delete { flex-shrink: 0; background: transparent; border: none; color: #a0b8d0; font-size: 1.3rem; padding: 4px 8px; border-radius: 30px; cursor: pointer; }
-        .duplicate-badge { position: absolute; top: 4px; right: 40px; background: #fef3c7; color: #92400e; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; }
-        .blocked-badge { position: absolute; top: 4px; right: 40px; background: #fee2e2; color: #991b1b; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; }
         .save-feedback { background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-left: 8px; }
         .empty-placeholder { padding: 40px 16px; text-align: center; color: #7a96b5; font-size: 0.98rem; }
         .footer-note { margin-top: 18px; font-size: 0.8rem; color: #7f99b7; text-align: center; border-top: 1px dashed #d5e2f0; padding-top: 16px; }
@@ -121,7 +121,7 @@
         </div>
         <div class="search-wrapper">
             <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="搜索当前词库…" autocomplete="off">
+            <input type="text" id="searchInput" placeholder="搜索词库 (支持关键词或拼音首字母, 如 df)" autocomplete="off">
         </div>
         <div class="data-toolbar">
             <button class="btn btn-export btn-small" id="exportWordBankBtn">📤 导出词库</button>
@@ -226,13 +226,11 @@
         });
     }
 
-    // 旧版 localStorage 键名
     const OLD_STORAGE_KEY = 'terminology_saved_pairs';
     const OLD_LEARNING_KEY = 'terminology_learning_data';
     const OLD_META_KEY = 'terminology_daily_meta';
     const MIGRATION_FLAG = 'v4_migration_completed';
 
-    // 数据模型
     let currentWordBankName = '';
     let currentDeckName = '';
     let dailyNewCardsLimit = 20;
@@ -273,7 +271,6 @@
         await dbSet(STORE_SETTINGS, 'config', { dailyLimit: dailyNewCardsLimit });
     }
 
-    // UI 工具
     function showToast(msg, dur=2000) {
         const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
         document.body.appendChild(t);
@@ -302,7 +299,7 @@
         overlay.querySelector('.ok').onclick = ()=> { const val = overlay.querySelector('#selectionSelect').value; overlay.remove(); cb(val); };
     }
 
-    // ==================== 历史数据迁移 ====================
+    // 历史数据迁移
     async function checkAndMigrateOldData() {
         if (localStorage.getItem(MIGRATION_FLAG) === 'done') return;
         const oldTerms = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || 'null');
@@ -418,7 +415,7 @@
         });
     }
 
-    // 检索页
+    // ==================== 核心修改：检索页 (支持拼音智能搜索) ====================
     async function refreshWordBankSelect() {
         const names = await getWordBankNames();
         const sel = document.getElementById('wordBankSelect');
@@ -432,10 +429,36 @@
         }
         await renderSearchResults();
     }
+
     async function renderSearchResults() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
         const terms = currentWordBankName ? await getWordBank(currentWordBankName) : [];
-        const filtered = terms.filter(t => t.chinese.includes(query) || t.english.toLowerCase().includes(query));
+        
+        const filtered = terms.filter(t => {
+            const cn = (t.chinese || '').toLowerCase();
+            const en = (t.english || '').toLowerCase();
+            
+            // 1. 基本包含匹配 (原版逻辑)
+            if (cn.includes(query) || en.includes(query)) return true;
+            
+            // 2. 英文首字母匹配 (例如：Organic Waste -> ow)
+            const enInitials = en.split(/[\s\-]+/).map(w => w[0] || '').join('');
+            if (enInitials.includes(query)) return true;
+            
+            // 3. 拼音首字母匹配 (依赖 pinyin-pro 库，例如：堆肥 -> df)
+            try {
+                if (typeof pinyinPro !== 'undefined') {
+                    // 获取拼音首字母数组并拼接，去掉可能存在的空格
+                    const pyInitials = pinyinPro.pinyin(cn, { pattern: 'first', toneType: 'none', type: 'array' }).join('').replace(/\s+/g, '');
+                    if (pyInitials.includes(query)) return true;
+                }
+            } catch (e) {
+                // 如果库加载失败或解析错误，忽略并返回false
+            }
+            
+            return false;
+        });
+
         document.getElementById('searchBadge').textContent = filtered.length;
         const container = document.getElementById('searchListContainer');
         if (filtered.length === 0) {
@@ -466,7 +489,7 @@
         });
     }
 
-    // ==================== 复习页 (修复版) ====================
+    // 复习页
     async function refreshDeckSelect() {
         const names = await getDeckNames();
         const sel = document.getElementById('deckSelect');
@@ -483,7 +506,7 @@
 
     let reviewQueue = [];
     let deckData = null;
-    let sessionNewCardsCount = 0; // 本次会话已引入的新卡片数
+    let sessionNewCardsCount = 0;
 
     async function loadDeckAndReview() {
         if (!currentDeckName) {
@@ -492,12 +515,11 @@
         }
         deckData = await getDeck(currentDeckName);
         const today = getToday();
-        // 重置每日计数（如果是新的一天）
         if (deckData.dailyMeta.date !== today) {
             deckData.dailyMeta = { date: today, newCardsIntroduced: 0, reviewsCompleted: 0 };
             await saveDeck(currentDeckName, deckData);
         }
-        sessionNewCardsCount = deckData.dailyMeta.newCardsIntroduced; // 从已保存的计数开始
+        sessionNewCardsCount = deckData.dailyMeta.newCardsIntroduced;
         buildQueue();
         updateDeckStats();
         if (reviewQueue.length === 0) {
@@ -518,7 +540,6 @@
         const due = [];
         const seen = new Set();
         
-        // 收集到期卡片
         for (const [cn, state] of Object.entries(deckData.learningData)) {
             if (state.nextReview && state.nextReview <= today) {
                 due.push({chinese: cn, state, isNew: false});
@@ -526,7 +547,6 @@
             }
         }
         
-        // 收集新卡片（基于每日限额）
         const newCards = [];
         const remainingSlots = Math.max(0, dailyNewCardsLimit - sessionNewCardsCount);
         
@@ -581,7 +601,6 @@
         if (reviewQueue.length === 0) return;
         const card = reviewQueue.shift();
         
-        // 如果是新卡片且不是重来，增加新卡片计数
         if (card.isNew && rating !== 'again' && rating !== 'bury' && rating !== 'delete') {
             sessionNewCardsCount++;
             deckData.dailyMeta.newCardsIntroduced = sessionNewCardsCount;
