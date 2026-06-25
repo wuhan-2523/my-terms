@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>中英术语库 · 多层级管理 (V5.1 修复数据恢复与按钮逻辑)</title>
+    <title>中英术语库 · 多库管理 (V4.6 修复新卡计数)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #f0f4fb; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px 40px; margin: 0; }
@@ -21,8 +21,7 @@
         textarea::placeholder { color: #a0b6cf; font-weight: 300; }
         .action-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: 20px; gap: 12px; }
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn { background: white; border: 1px solid #cbd7e9; padding: 11px 20px; border-radius: 60px; font-weight: 500; font-size: 0.95rem; color: #1a2f4a; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; cursor: pointer; touch-action: manipulation; user-select: none; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        .btn:hover { filter: brightness(0.97); }
+        .btn { background: white; border: 1px solid #cbd7e9; padding: 11px 20px; border-radius: 60px; font-weight: 500; font-size: 0.95rem; color: #1a2f4a; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; cursor: pointer; background: #fafdff; touch-action: manipulation; user-select: none; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
         .btn-primary { background: #1a2f4a; border: 1px solid #1a2f4a; color: white; box-shadow: 0 6px 12px -6px rgba(26, 47, 74, 0.25); }
         .btn-save { background: #059669; border: 1px solid #059669; color: white; }
         .btn-export { background: #3b82f6; border: 1px solid #3b82f6; color: white; }
@@ -39,21 +38,25 @@
         .pair-content { flex: 1; display: flex; flex-direction: column; gap: 4px; word-break: break-word; }
         .pair-chinese { color: #09315a; font-weight: 540; background: #e2edfe; padding: 2px 16px 2px 10px; border-radius: 30px; display: inline-block; align-self: flex-start; font-size: 0.95rem; }
         .pair-english { color: #1a3c62; background: #deeafb; padding: 2px 16px 2px 10px; border-radius: 30px; display: inline-block; align-self: flex-start; font-size: 0.95rem; }
-        .pair-actions { display: flex; gap: 6px; flex-shrink: 0; }
-        .btn-icon { background: transparent; border: none; font-size: 1.1rem; padding: 4px; border-radius: 30px; cursor: pointer; transition: 0.2s; }
-        .btn-icon:hover { background: #e2edfe; }
+        .pair-delete { flex-shrink: 0; background: transparent; border: none; color: #a0b8d0; font-size: 1.3rem; padding: 4px 8px; border-radius: 30px; cursor: pointer; }
+        .duplicate-badge { position: absolute; top: 4px; right: 40px; background: #fef3c7; color: #92400e; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; }
+        .blocked-badge { position: absolute; top: 4px; right: 40px; background: #fee2e2; color: #991b1b; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; }
+        .save-feedback { background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-left: 8px; }
         .empty-placeholder { padding: 40px 16px; text-align: center; color: #7a96b5; font-size: 0.98rem; }
+        .footer-note { margin-top: 18px; font-size: 0.8rem; color: #7f99b7; text-align: center; border-top: 1px dashed #d5e2f0; padding-top: 16px; }
         .search-wrapper { background: #f9fcff; border-radius: 28px; padding: 4px; border: 1px solid #dce5f0; margin-bottom: 18px; display: flex; align-items: center; }
         .search-icon { padding: 0 14px; font-size: 1.2rem; color: #6a84a3; }
         #searchInput { width: 100%; padding: 16px 8px 16px 0; border: none; background: transparent; font-size: 1rem; outline: none; font-family: inherit; }
+        .highlight { background-color: #fde68a; border-radius: 4px; padding: 0 2px; }
         .data-toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .selector-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
         .selector-row select { padding: 8px 12px; border-radius: 14px; border: 1px solid #dce5f0; background: white; font-family: inherit; font-size: 0.9rem; flex: 1; }
-        .confirm-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(2px); }
+        .confirm-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .confirm-dialog { background: white; border-radius: 24px; padding: 24px; max-width: 380px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        .confirm-dialog p { margin-bottom: 16px; color: #1a2f4a; font-size: 1rem; line-height: 1.5; font-weight: 600;}
-        .confirm-buttons { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 16px; }
-        .confirm-input { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #dce5f0; margin-bottom: 12px; font-family: inherit; font-size: 0.95rem; }
+        .confirm-dialog p { margin-bottom: 16px; color: #1a2f4a; font-size: 1rem; line-height: 1.5; }
+        .confirm-dialog small { color: #6b7280; font-size: 0.8rem; display: block; margin-top: 4px; }
+        .confirm-buttons { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+        .confirm-input { width: 100%; padding: 8px 12px; border-radius: 12px; border: 1px solid #dce5f0; margin-bottom: 12px; font-family: inherit; }
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1a2f4a; color: white; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.2); animation: slideDown 0.3s ease-out; }
         @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
         .card-stage { perspective: 900px; margin: 0 auto 20px; max-width: 480px; min-height: 220px; cursor: pointer; }
@@ -63,18 +66,17 @@
         .card-front { background: linear-gradient(145deg, #ffffff 0%, #f5f9ff 100%); z-index: 2; }
         .card-back { background: linear-gradient(145deg, #f0f7ff 0%, #e8f2fe 100%); transform: rotateY(180deg); z-index: 1; }
         .card-chinese-term { font-size: 2rem; font-weight: 700; color: #0b263f; }
-        .card-english-term { font-size: 1.6rem; font-weight: 600; color: #1a3c62; text-align: center; }
-        .card-hint { font-size: 0.85rem; color: #6a84a3; margin-top: 16px; }
+        .card-english-term { font-size: 1.6rem; font-weight: 600; color: #1a3c62; }
         .rating-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 6px; }
-        .rating-btn { flex: 1; min-width: 60px; padding: 10px 6px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; color: white; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.2s; }
+        .rating-btn { flex: 1; min-width: 60px; padding: 12px 8px; border-radius: 20px; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; color: white; }
         .rating-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-        .rating-btn small { font-size: 0.75rem; font-weight: 400; opacity: 0.9; }
         .rating-again { background: #ef4444; }
         .rating-hard { background: #f59e0b; }
         .rating-good { background: #10b981; }
         .rating-easy { background: #3b82f6; }
-        .folder-empty-state { text-align: center; padding: 40px 20px; color: #6a84a3; background: #f8fbfd; border-radius: 20px; border: 2px dashed #dce8f5; margin-top: 10px; }
-        .folder-empty-state h3 { color: #2f4b6b; margin-bottom: 8px; }
+        .migration-dialog { background: #fef9e7; border: 2px solid #fcd34d; border-radius: 24px; padding: 20px; margin-bottom: 16px; }
+        .migration-dialog h3 { color: #92400e; margin-bottom: 8px; }
+        .migration-dialog .btn-group { justify-content: flex-end; }
     </style>
 </head>
 <body>
@@ -85,9 +87,13 @@
         <button class="tab-btn" id="tabReview">🧠 记忆复习</button>
     </div>
 
+    <!-- 迁移提示区 -->
+    <div id="migrationArea"></div>
+
+    <!-- 提取面板 -->
     <div class="panel active" id="extractPanel">
         <h1>📋 术语提取器</h1>
-        <div class="subhead">⚡ 提取后保存到对应目录词库中</div>
+        <div class="subhead">⚡ 提取后保存到词库 · 选择或新建词库</div>
         <div class="textarea-wrapper">
             <textarea id="inputText" placeholder="粘贴术语文本…&#10;有机废弃物 — Organic Waste" spellcheck="true"></textarea>
         </div>
@@ -95,7 +101,7 @@
             <div class="btn-group">
                 <button class="btn btn-primary" id="extractBtn">🔍 提取</button>
                 <button class="btn btn-save" id="saveBtn">💾 保存到词库</button>
-                <button class="btn" id="clearBtn">🗑️ 清空</button>
+                <button class="btn btn-secondary" id="clearBtn">🗑️ 清空</button>
             </div>
             <div class="stats" id="pairCount">0 对</div>
         </div>
@@ -105,94 +111,81 @@
         </div>
     </div>
 
+    <!-- 检索面板 -->
     <div class="panel" id="searchPanel">
         <h1>🔎 渐进检索</h1>
         <div class="selector-row">
             <select id="wordBankSelect"><option value="">加载中…</option></select>
-            <button class="btn btn-small btn-secondary" id="newWordBankBtn">➕ 新建</button>
+            <button class="btn btn-small btn-secondary" id="newWordBankBtn">➕ 新建词库</button>
             <button class="btn btn-small btn-danger" id="deleteWordBankBtn">🗑️</button>
         </div>
-        
-        <div id="bankContentArea">
-            <div class="search-wrapper">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" placeholder="搜索当前词库…" autocomplete="off">
-            </div>
-            <div class="data-toolbar">
-                <button class="btn btn-export btn-small" id="exportWordBankBtn">📤 导出</button>
-                <button class="btn btn-import btn-small" id="importWordBankBtn">📥 导入</button>
-                <button class="btn btn-small" id="importToDeckBtn" style="background:#8b5cf6;color:white;">📚 导入到卡库</button>
-            </div>
-            <input type="file" id="importFileInput" accept=".json" hidden>
-            <div class="result-section">
-                <div class="result-header"><span>📋 结果 <span class="badge" id="searchBadge">0</span></span></div>
-                <div class="list-container" id="searchListContainer"></div>
-            </div>
+        <div class="search-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="搜索当前词库…" autocomplete="off">
         </div>
-        
-        <div id="bankFolderArea" class="folder-empty-state" style="display:none;">
-            <h3>📂 这是一个文件夹</h3>
-            <p>请在此文件夹下新建词库，或在上方选择具体的词库进行操作。</p>
+        <div class="data-toolbar">
+            <button class="btn btn-export btn-small" id="exportWordBankBtn">📤 导出词库</button>
+            <button class="btn btn-import btn-small" id="importWordBankBtn">📥 导入词库</button>
+            <button class="btn btn-small" id="importToDeckBtn" style="background:#8b5cf6;color:white;">📚 导入到卡库</button>
+        </div>
+        <input type="file" id="importFileInput" accept=".json" hidden>
+        <div class="result-section">
+            <div class="result-header"><span>📋 结果 <span class="badge" id="searchBadge">0</span></span></div>
+            <div class="list-container" id="searchListContainer"></div>
         </div>
     </div>
 
+    <!-- 复习面板 -->
     <div class="panel" id="reviewPanel">
         <h1>🧠 间隔复习</h1>
         <div class="selector-row">
             <select id="deckSelect"><option value="">加载中…</option></select>
-            <button class="btn btn-small btn-secondary" id="newDeckBtn">➕ 新建</button>
+            <button class="btn btn-small btn-secondary" id="newDeckBtn">➕ 新建卡库</button>
             <button class="btn btn-small btn-danger" id="deleteDeckBtn">🗑️</button>
             <button class="btn btn-small btn-secondary" id="resetDeckProgressBtn">🔄 重置进度</button>
         </div>
-        
-        <div id="deckContentArea">
-            <div class="daily-limit-settings" style="margin-bottom:12px; display:flex; gap:8px; align-items:center; justify-content:center;">
-                <label>📅 每日新卡上限：</label>
-                <input type="number" id="dailyLimitInput" min="1" max="200" value="20" style="width:70px; padding:6px; border-radius:10px; border:1px solid #dce5f0; text-align:center;">
-                <button class="btn btn-small btn-secondary" id="saveDailyLimitBtn">保存</button>
-            </div>
-            <div class="review-stats-bar" style="display:flex; gap:8px; margin-bottom:12px; justify-content:center;">
-                <span class="stats" id="statDue">待复习 0</span>
-                <span class="stats" id="statNew">新卡 0</span>
-                <span class="stats" id="statDone">已完成 0</span>
-                <span class="stats" id="statTotal">总计 0</span>
-            </div>
-            <div class="card-stage" id="cardStage" style="display:none;">
-                <div class="card-inner" id="cardInner">
-                    <div class="card-face card-front"><div class="card-chinese-term" id="cardChineseTerm"></div><div class="card-hint">👆 点击翻转</div></div>
-                    <div class="card-face card-back"><div class="card-english-term" id="cardEnglishTerm"></div><div class="card-hint" id="cardHintInfo"></div></div>
-                </div>
-            </div>
-            <div class="rating-buttons" id="ratingButtons" style="display:none;">
-                <button class="rating-btn rating-again" data-rating="again" disabled>重来<small>-</small></button>
-                <button class="rating-btn rating-hard" data-rating="hard" disabled>困难<small>-</small></button>
-                <button class="rating-btn rating-good" data-rating="good" disabled>良好<small>-</small></button>
-                <button class="rating-btn rating-easy" data-rating="easy" disabled>简单<small>-</small></button>
-            </div>
-            <div class="review-actions-row" style="display:none; justify-content:center; gap:8px; margin-top:12px;" id="reviewActionsRow">
-                <button class="btn btn-small" id="buryCardBtn">📅 搁置 (1天)</button>
-            </div>
-            <div id="reviewComplete" style="display:none; text-align:center; padding:30px;">🎉 今日复习完成！</div>
-            <div id="reviewEmptyState" class="empty-placeholder">此库暂无术语，请先导入</div>
+        <div class="daily-limit-settings" style="margin-bottom:12px; display:flex; gap:8px; align-items:center; justify-content:center;">
+            <label>📅 每日新卡上限：</label>
+            <input type="number" id="dailyLimitInput" min="1" max="200" value="20" style="width:70px; padding:6px; border-radius:10px; border:1px solid #dce5f0; text-align:center;">
+            <button class="btn btn-small btn-secondary" id="saveDailyLimitBtn">保存</button>
         </div>
-
-        <div id="deckFolderArea" class="folder-empty-state" style="display:none;">
-            <h3>📂 这是一个文件夹</h3>
-            <p>请在此文件夹下新建卡库，或在上方选择具体的卡库开始复习。</p>
+        <div class="review-stats-bar" style="display:flex; gap:8px; margin-bottom:12px; justify-content:center;">
+            <span class="stats" id="statDue">待复习 0</span>
+            <span class="stats" id="statNew">新卡 0</span>
+            <span class="stats" id="statDone">已完成 0</span>
+            <span class="stats" id="statTotal">总计 0</span>
         </div>
+        <div class="card-stage" id="cardStage" style="display:none;">
+            <div class="card-inner" id="cardInner">
+                <div class="card-face card-front"><div class="card-chinese-term" id="cardChineseTerm"></div><div class="card-hint-tap">👆 点击翻转</div></div>
+                <div class="card-face card-back"><div class="card-english-term" id="cardEnglishTerm"></div><div class="card-hint" id="cardHintInfo"></div></div>
+            </div>
+        </div>
+        <div class="rating-buttons" id="ratingButtons" style="display:none;">
+            <button class="rating-btn rating-again" data-rating="again" disabled>重来</button>
+            <button class="rating-btn rating-hard" data-rating="hard" disabled>困难</button>
+            <button class="rating-btn rating-good" data-rating="good" disabled>良好</button>
+            <button class="rating-btn rating-easy" data-rating="easy" disabled>简单</button>
+        </div>
+        <div class="review-actions-row" style="display:none; justify-content:center; gap:8px; margin-top:8px;" id="reviewActionsRow">
+            <button class="btn btn-small btn-secondary" id="buryCardBtn">📅 搁置</button>
+            <button class="btn btn-small btn-danger" id="deleteCardBtn">🗑️ 删除</button>
+        </div>
+        <div id="reviewComplete" style="display:none; text-align:center; padding:30px;">🎉 今日复习完成！</div>
+        <div id="reviewEmptyState" class="empty-placeholder">请先创建卡库并导入术语</div>
     </div>
 </div>
 
 <script>
 (function() {
-    const DB_NAME = 'TerminologyDB_V5';
+    const DB_NAME = 'TerminologyDB_V4';
     let db;
     const STORE_WORD_BANKS = 'wordBanks';
     const STORE_CARD_DECKS = 'cardDecks';
     const STORE_SETTINGS = 'settings';
 
     const openDB = () => new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, 1);
+        const req = indexedDB.open(DB_NAME, 2);
         req.onupgradeneeded = (e) => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains(STORE_WORD_BANKS)) db.createObjectStore(STORE_WORD_BANKS);
@@ -208,7 +201,8 @@
         return new Promise((resolve, reject) => {
             const tx = db.transaction(store, 'readwrite');
             tx.objectStore(store).put(value, key);
-            tx.oncomplete = resolve; tx.onerror = reject;
+            tx.oncomplete = resolve;
+            tx.onerror = reject;
         });
     }
 
@@ -217,7 +211,8 @@
         return new Promise((resolve, reject) => {
             const tx = db.transaction(store, 'readonly');
             const req = tx.objectStore(store).get(key);
-            req.onsuccess = () => resolve(req.result); req.onerror = reject;
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = reject;
         });
     }
 
@@ -226,207 +221,169 @@
         return new Promise((resolve, reject) => {
             const tx = db.transaction(store, 'readwrite');
             tx.objectStore(store).delete(key);
-            tx.oncomplete = resolve; tx.onerror = reject;
+            tx.oncomplete = resolve;
+            tx.onerror = reject;
         });
     }
 
-    // ================== Tree 数据架构 ==================
-    const genId = () => 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+    // 旧版 localStorage 键名
+    const OLD_STORAGE_KEY = 'terminology_saved_pairs';
+    const OLD_LEARNING_KEY = 'terminology_learning_data';
+    const OLD_META_KEY = 'terminology_daily_meta';
+    const MIGRATION_FLAG = 'v4_migration_completed';
 
-    async function getTree(store) { return await dbGet(store, '_tree_') || []; }
-    async function saveTree(store, tree) { await dbSet(store, '_tree_', tree); }
-
-    // 修复：从真正的旧版 V4 数据库恢复数据！
-    async function recoverDataFromV4() {
-        if (localStorage.getItem('v4_to_v5_recovered') === 'done') return;
-
-        // 尝试打开 V4 DB
-        const v4DB = await new Promise((resolve) => {
-            const req = indexedDB.open('TerminologyDB_V4', 2);
-            req.onsuccess = (e) => resolve(e.target.result);
-            req.onerror = () => resolve(null);
-            req.onupgradeneeded = (e) => { e.target.transaction.abort(); resolve(null); }; // 如果不存在会触发 abort
-        });
-
-        if (!v4DB) {
-            localStorage.setItem('v4_to_v5_recovered', 'done');
-            return;
-        }
-
-        const getV4 = (store, key) => new Promise((resolve) => {
-            try {
-                const tx = v4DB.transaction(store, 'readonly');
-                const req = tx.objectStore(store).get(key);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => resolve(null);
-            } catch(e) { resolve(null); }
-        });
-
-        let recoveredCount = 0;
-
-        // 恢复词库 (包括你的“常用汉字映射”)
-        const wbNames = await getV4(STORE_WORD_BANKS, '_names_');
-        if (wbNames && Array.isArray(wbNames)) {
-            const tree = await getTree(STORE_WORD_BANKS);
-            for (const name of wbNames) {
-                const data = await getV4(STORE_WORD_BANKS, name);
-                if (data && !tree.some(n => n.name === name)) {
-                    const newId = genId();
-                    tree.push({ id: newId, type: 'bank', parentId: null, name: name });
-                    await dbSet(STORE_WORD_BANKS, newId, data);
-                    recoveredCount++;
-                }
-            }
-            await saveTree(STORE_WORD_BANKS, tree);
-        }
-
-        // 恢复卡库
-        const cdNames = await getV4(STORE_CARD_DECKS, '_names_');
-        if (cdNames && Array.isArray(cdNames)) {
-            const tree = await getTree(STORE_CARD_DECKS);
-            for (const name of cdNames) {
-                const data = await getV4(STORE_CARD_DECKS, name);
-                if (data && !tree.some(n => n.name === name)) {
-                    const newId = genId();
-                    tree.push({ id: newId, type: 'bank', parentId: null, name: name });
-                    await dbSet(STORE_CARD_DECKS, newId, data);
-                    recoveredCount++;
-                }
-            }
-            await saveTree(STORE_CARD_DECKS, tree);
-        }
-
-        v4DB.close();
-        localStorage.setItem('v4_to_v5_recovered', 'done');
-        if (recoveredCount > 0) {
-            setTimeout(() => showToast(`🎉 成功恢复了 ${recoveredCount} 个旧版词库/卡库数据！`, 4000), 1000);
-        }
-    }
-
-    async function deleteNodeRecursive(store, tree, nodeId) {
-        const children = tree.filter(n => n.parentId === nodeId);
-        for (const c of children) { await deleteNodeRecursive(store, tree, c.id); }
-        const node = tree.find(n => n.id === nodeId);
-        if (node && node.type === 'bank') await dbDelete(store, nodeId);
-        const idx = tree.findIndex(n => n.id === nodeId);
-        if (idx !== -1) tree.splice(idx, 1);
-    }
-
-    // UI Tools
-    function showToast(msg, dur=2500) {
-        const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
-        document.body.appendChild(t);
-        setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, dur);
-    }
-    
-    function showConfirm(msg, cb) {
-        const overlay = document.createElement('div'); overlay.className='confirm-overlay';
-        overlay.innerHTML = `<div class="confirm-dialog"><p>${msg}</p><div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
-        document.body.appendChild(overlay);
-        overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
-        overlay.querySelector('.ok').onclick = ()=> { overlay.remove(); cb(); };
-    }
-
-    function showCreateNodeModal(title, cb) {
-        const overlay = document.createElement('div'); overlay.className='confirm-overlay';
-        overlay.innerHTML = `
-            <div class="confirm-dialog">
-                <p>➕ ${title}</p>
-                <select id="nodeType" class="confirm-input">
-                    <option value="bank">📄 建立记录库</option>
-                    <option value="folder">📂 建立文件夹</option>
-                </select>
-                <input id="nodeName" class="confirm-input" placeholder="输入名称" autocomplete="off">
-                <div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div>
-            </div>`;
-        document.body.appendChild(overlay);
-        setTimeout(()=> overlay.querySelector('#nodeName').focus(), 100);
-        overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
-        overlay.querySelector('.ok').onclick = ()=> {
-            const type = overlay.querySelector('#nodeType').value;
-            const name = overlay.querySelector('#nodeName').value.trim();
-            if(!name) return showToast('名称不能为空');
-            overlay.remove(); cb(type, name);
-        };
-    }
-
-    function showEditTermModal(oldCn, oldEn, cb) {
-        const overlay = document.createElement('div'); overlay.className='confirm-overlay';
-        overlay.innerHTML = `
-            <div class="confirm-dialog">
-                <p>✏️ 编辑术语</p>
-                <small style="color:#6a84a3;display:block;margin-bottom:8px;">修改后将自动同步至所有卡库</small>
-                <input id="editCn" class="confirm-input" value="${oldCn}" placeholder="中文">
-                <textarea id="editEn" class="confirm-input" style="height:80px;resize:vertical;" placeholder="英文">${oldEn}</textarea>
-                <div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-save ok">保存同步</button></div>
-            </div>`;
-        document.body.appendChild(overlay);
-        overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
-        overlay.querySelector('.ok').onclick = ()=> {
-            const nCn = overlay.querySelector('#editCn').value.trim();
-            const nEn = overlay.querySelector('#editEn').value.trim();
-            if(!nCn || !nEn) return showToast('内容不能为空');
-            overlay.remove(); cb(nCn, nEn);
-        };
-    }
-
-    function buildTreeSelectHTML(tree, parentId = null, depth = 0, onlyBanks = false) {
-        let html = '';
-        const children = tree.filter(n => n.parentId === parentId);
-        for (const child of children) {
-            const prefix = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(depth);
-            if (child.type === 'folder') {
-                if(!onlyBanks) html += `<option value="${child.id}">${prefix}📂 ${child.name}</option>`;
-                else html += `<option disabled>${prefix}📂 ${child.name}</option>`;
-                html += buildTreeSelectHTML(tree, child.id, depth + 1, onlyBanks);
-            } else {
-                html += `<option value="${child.id}">${prefix}📄 ${child.name}</option>`;
-            }
-        }
-        return html;
-    }
-
-    // ==================== 全局状态 ====================
-    let currentBankNodeId = null;
-    let currentDeckNodeId = null;
+    // 数据模型
+    let currentWordBankName = '';
+    let currentDeckName = '';
     let dailyNewCardsLimit = 20;
 
     function getToday() { const d = new Date(); return d.toISOString().slice(0,10); }
 
+    // 词库操作
+    async function getWordBankNames() { return await dbGet(STORE_WORD_BANKS, '_names_') || []; }
+    async function saveWordBankNames(names) { await dbSet(STORE_WORD_BANKS, '_names_', names); }
+    async function getWordBank(name) { return await dbGet(STORE_WORD_BANKS, name) || []; }
+    async function saveWordBank(name, terms) { await dbSet(STORE_WORD_BANKS, name, terms); }
+    async function deleteWordBank(name) {
+        await dbDelete(STORE_WORD_BANKS, name);
+        const names = await getWordBankNames();
+        const idx = names.indexOf(name);
+        if (idx >= 0) { names.splice(idx,1); await saveWordBankNames(names); }
+    }
+
+    // 卡库操作
+    async function getDeckNames() { return await dbGet(STORE_CARD_DECKS, '_names_') || []; }
+    async function saveDeckNames(names) { await dbSet(STORE_CARD_DECKS, '_names_', names); }
+    async function getDeck(name) { return await dbGet(STORE_CARD_DECKS, name) || { terms: [], learningData: {}, dailyMeta: { date: '', newCardsIntroduced: 0, reviewsCompleted: 0 } }; }
+    async function saveDeck(name, data) { await dbSet(STORE_CARD_DECKS, name, data); }
+    async function deleteDeck(name) {
+        await dbDelete(STORE_CARD_DECKS, name);
+        const names = await getDeckNames();
+        const idx = names.indexOf(name);
+        if (idx >= 0) { names.splice(idx,1); await saveDeckNames(names); }
+    }
+
+    // 设置
     async function loadSettings() {
         const s = await dbGet(STORE_SETTINGS, 'config') || {};
         dailyNewCardsLimit = s.dailyLimit || 20;
         document.getElementById('dailyLimitInput').value = dailyNewCardsLimit;
     }
-
-    async function syncTermUpdateToDecks(oldCn, newCn, newEn) {
-        const deckTree = await getTree(STORE_CARD_DECKS);
-        const deckIds = deckTree.filter(n => n.type === 'bank').map(n => n.id);
-        let syncCount = 0;
-        for (const id of deckIds) {
-            const deck = await dbGet(STORE_CARD_DECKS, id);
-            if (!deck || !deck.terms) continue;
-            let changed = false;
-            for (let t of deck.terms) {
-                if (t.chinese === oldCn) {
-                    t.chinese = newCn; t.english = newEn; changed = true;
-                }
-            }
-            if (changed) {
-                if (deck.learningData && deck.learningData[oldCn]) {
-                    deck.learningData[newCn] = deck.learningData[oldCn];
-                    if(oldCn !== newCn) delete deck.learningData[oldCn];
-                }
-                await dbSet(STORE_CARD_DECKS, id, deck);
-                syncCount++;
-            }
-        }
-        if(syncCount > 0) showToast(`已同步更新 ${syncCount} 个记忆卡库`);
+    async function saveSettings() {
+        await dbSet(STORE_SETTINGS, 'config', { dailyLimit: dailyNewCardsLimit });
     }
 
-    // ==================== 提取页 ====================
+    // UI 工具
+    function showToast(msg, dur=2000) {
+        const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+        document.body.appendChild(t);
+        setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, dur);
+    }
+    function showConfirm(msg, cb, inputPlaceholder) {
+        const overlay = document.createElement('div'); overlay.className='confirm-overlay';
+        let inputHtml = inputPlaceholder ? `<input id="confirmInput" class="confirm-input" placeholder="${inputPlaceholder}" value="${inputPlaceholder}">` : '';
+        overlay.innerHTML = `<div class="confirm-dialog"><p>${msg}</p>${inputHtml}<div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
+        overlay.querySelector('.ok').onclick = ()=> {
+            const inputVal = inputPlaceholder ? overlay.querySelector('#confirmInput')?.value?.trim() : null;
+            overlay.remove(); 
+            if (inputPlaceholder && !inputVal) return;
+            cb(inputVal);
+        };
+        if (inputPlaceholder) setTimeout(()=> overlay.querySelector('#confirmInput')?.select(), 50);
+    }
+    function showSelection(title, options, cb) {
+        const overlay = document.createElement('div'); overlay.className='confirm-overlay';
+        let optsHtml = options.map(o => `<option value="${o}">${o}</option>`).join('');
+        overlay.innerHTML = `<div class="confirm-dialog"><p>${title}</p><select id="selectionSelect" style="width:100%; padding:10px; border-radius:12px; border:1px solid #dce5f0; margin-bottom:12px;">${optsHtml}</select><div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
+        overlay.querySelector('.ok').onclick = ()=> { const val = overlay.querySelector('#selectionSelect').value; overlay.remove(); cb(val); };
+    }
+
+    // ==================== 历史数据迁移 ====================
+    async function checkAndMigrateOldData() {
+        if (localStorage.getItem(MIGRATION_FLAG) === 'done') return;
+        const oldTerms = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || 'null');
+        const oldLearning = JSON.parse(localStorage.getItem(OLD_LEARNING_KEY) || 'null');
+        const oldMeta = JSON.parse(localStorage.getItem(OLD_META_KEY) || 'null');
+        if (!oldTerms && !oldLearning) return;
+        const migrationDiv = document.getElementById('migrationArea');
+        let html = '<div class="migration-dialog"><h3>📦 检测到旧版本数据</h3>';
+        if (oldTerms && Array.isArray(oldTerms) && oldTerms.length > 0) {
+            html += `<p>📚 旧术语库：<strong>${oldTerms.length}</strong> 条术语</p>`;
+        }
+        if (oldLearning && Object.keys(oldLearning).length > 0) {
+            html += `<p>🧠 旧学习记录：<strong>${Object.keys(oldLearning).length}</strong> 张卡片</p>`;
+        }
+        html += '<div class="btn-group" style="margin-top:12px;">';
+        if (oldTerms && Array.isArray(oldTerms) && oldTerms.length > 0) {
+            html += '<button class="btn btn-save btn-small" id="migrateTermsBtn">📥 导入术语为词库</button>';
+        }
+        if (oldLearning && Object.keys(oldLearning).length > 0) {
+            html += '<button class="btn btn-primary btn-small" id="migrateLearningBtn">🧠 导入学习记录为卡库</button>';
+        }
+        html += '<button class="btn btn-danger btn-small" id="deleteOldDataBtn">🗑️ 删除旧数据</button>';
+        html += '</div><small style="color:#6b7280; margin-top:8px; display:block;">数据保存在 localStorage，导入后可安全删除。</small></div>';
+        migrationDiv.innerHTML = html;
+
+        document.getElementById('migrateTermsBtn')?.addEventListener('click', async () => {
+            const terms = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || '[]');
+            showConfirm('为旧术语库命名（将作为新词库名称）', async (name) => {
+                const names = await getWordBankNames();
+                let finalName = name;
+                if (names.includes(name)) finalName = name + '_' + Date.now().toString().slice(-4);
+                await saveWordBank(finalName, terms.filter(t => t && t.chinese));
+                const allNames = await getWordBankNames();
+                allNames.push(finalName);
+                await saveWordBankNames(allNames);
+                showToast(`✅ 已导入为词库「${finalName}」`);
+                migrationDiv.innerHTML = '';
+                localStorage.setItem(MIGRATION_FLAG, 'done');
+                await refreshWordBankSelect();
+            }, '旧版术语库');
+        });
+
+        document.getElementById('migrateLearningBtn')?.addEventListener('click', async () => {
+            const learning = JSON.parse(localStorage.getItem(OLD_LEARNING_KEY) || '{}');
+            const terms = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || '[]');
+            const meta = JSON.parse(localStorage.getItem(OLD_META_KEY) || '{"date":"","newCardsIntroduced":0,"reviewsCompleted":0}');
+            showConfirm('为旧学习记录命名（将作为新卡库名称）', async (name) => {
+                const deckNames = await getDeckNames();
+                let finalName = name;
+                if (deckNames.includes(name)) finalName = name + '_' + Date.now().toString().slice(-4);
+                const deckData = {
+                    terms: terms.filter(t => t && t.chinese).map(t => ({chinese: t.chinese, english: t.english})),
+                    learningData: learning,
+                    dailyMeta: meta || { date: getToday(), newCardsIntroduced: 0, reviewsCompleted: 0 }
+                };
+                await saveDeck(finalName, deckData);
+                const allNames = await getDeckNames();
+                allNames.push(finalName);
+                await saveDeckNames(allNames);
+                showToast(`✅ 已导入为卡库「${finalName}」`);
+                migrationDiv.innerHTML = '';
+                localStorage.setItem(MIGRATION_FLAG, 'done');
+                await refreshDeckSelect();
+            }, '旧版学习记录');
+        });
+
+        document.getElementById('deleteOldDataBtn')?.addEventListener('click', () => {
+            showConfirm('确定要删除所有旧数据吗？此操作不可恢复。', () => {
+                localStorage.removeItem(OLD_STORAGE_KEY);
+                localStorage.removeItem(OLD_LEARNING_KEY);
+                localStorage.removeItem(OLD_META_KEY);
+                localStorage.setItem(MIGRATION_FLAG, 'done');
+                migrationDiv.innerHTML = '';
+                showToast('旧数据已删除');
+            });
+        });
+    }
+
+    // 提取页
     let currentExtractPairs = [];
-    document.getElementById('extractBtn').onclick = () => {
+    function performExtract() {
         const text = document.getElementById('inputText').value;
         const lines = text.split('\n');
         currentExtractPairs = [];
@@ -442,223 +399,61 @@
             }
         }
         renderExtractList();
-    };
-
+    }
     function renderExtractList() {
         document.getElementById('pairCount').textContent = currentExtractPairs.length + ' 对';
         document.getElementById('resultBadge').textContent = currentExtractPairs.length;
         const container = document.getElementById('listContainer');
-        if (currentExtractPairs.length === 0) { container.innerHTML = '<div class="empty-placeholder">😕 暂无术语</div>'; return; }
+        if (currentExtractPairs.length === 0) {
+            container.innerHTML = '<div class="empty-placeholder">😕 暂无术语</div>';
+            return;
+        }
         container.innerHTML = currentExtractPairs.map((p,i) => 
-            `<div class="pair-item"><span class="pair-index">${i+1}</span><div class="pair-content"><span class="pair-chinese">${p.chinese}</span><span class="pair-english">${p.english}</span></div><div class="pair-actions"><button class="btn-icon" onclick="removeExtract(${i})">🗑️</button></div></div>`
+            `<div class="pair-item"><span class="pair-index">${i+1}</span><div class="pair-content"><span class="pair-chinese">${p.chinese}</span><span class="pair-english">${p.english}</span></div><button class="pair-delete" data-idx="${i}">✕</button></div>`
         ).join('');
+        container.querySelectorAll('.pair-delete').forEach(b => b.onclick = (e) => {
+            const i = parseInt(e.target.dataset.idx);
+            currentExtractPairs.splice(i,1);
+            renderExtractList();
+        });
     }
-    window.removeExtract = (i) => { currentExtractPairs.splice(i,1); renderExtractList(); };
-    document.getElementById('clearBtn').onclick = () => { document.getElementById('inputText').value=''; currentExtractPairs=[]; renderExtractList(); };
 
-    document.getElementById('saveBtn').onclick = async () => {
-        if (currentExtractPairs.length===0) return showToast('没有可保存的术语');
-        const tree = await getTree(STORE_WORD_BANKS);
-        
-        const overlay = document.createElement('div'); overlay.className='confirm-overlay';
-        let options = `<option value="_new_">➕ 【新建词库并保存】</option>` + buildTreeSelectHTML(tree, null, 0, true);
-        overlay.innerHTML = `<div class="confirm-dialog"><p>选择目标词库</p><select id="targetSelect" class="confirm-input">${options}</select><div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
-        document.body.appendChild(overlay);
-        
-        overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
-        overlay.querySelector('.ok').onclick = async ()=> {
-            const targetId = overlay.querySelector('#targetSelect').value;
-            overlay.remove();
-            
-            if (targetId === '_new_') {
-                showCreateNodeModal('新建根目录词库', async (type, name) => {
-                    if(type==='folder') return showToast('请选择建立"库"');
-                    const newId = genId();
-                    tree.push({ id: newId, type: 'bank', parentId: null, name: name });
-                    const terms = []; let added = 0;
-                    for (const p of currentExtractPairs) { if (!terms.some(t => t.chinese === p.chinese)) { terms.push(p); added++; } }
-                    await dbSet(STORE_WORD_BANKS, newId, terms);
-                    await saveTree(STORE_WORD_BANKS, tree);
-                    showToast(`✅ 保存 ${added} 条到「${name}」`);
-                    currentBankNodeId = newId;
-                    await refreshWordBankSelect();
-                });
-            } else {
-                const terms = await dbGet(STORE_WORD_BANKS, targetId) || [];
-                let added = 0;
-                for (const p of currentExtractPairs) { if (!terms.some(t => t.chinese === p.chinese)) { terms.push(p); added++; } }
-                await dbSet(STORE_WORD_BANKS, targetId, terms);
-                showToast(`✅ 成功追加 ${added} 条术语`);
-                if(currentBankNodeId === targetId) await renderSearchResults();
-            }
-        };
-    };
-
-    // ==================== 检索页 ====================
+    // 检索页
     async function refreshWordBankSelect() {
-        const tree = await getTree(STORE_WORD_BANKS);
+        const names = await getWordBankNames();
         const sel = document.getElementById('wordBankSelect');
-        sel.innerHTML = buildTreeSelectHTML(tree) || '<option value="">无词库，请新建</option>';
-        if (tree.length > 0 && !currentBankNodeId) currentBankNodeId = tree[0].id;
-        if (currentBankNodeId && tree.some(n => n.id === currentBankNodeId)) {
-            sel.value = currentBankNodeId;
+        sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+        if (names.length === 0) {
+            sel.innerHTML = '<option value="">无词库</option>';
+            currentWordBankName = '';
         } else {
-            currentBankNodeId = null;
+            if (!names.includes(currentWordBankName)) currentWordBankName = names[0];
+            sel.value = currentWordBankName;
         }
         await renderSearchResults();
     }
-
     async function renderSearchResults() {
-        if(!currentBankNodeId) {
-            document.getElementById('bankContentArea').style.display = 'none';
-            return;
-        }
-        const tree = await getTree(STORE_WORD_BANKS);
-        const node = tree.find(n => n.id === currentBankNodeId);
-        if(!node) return;
-
-        if (node.type === 'folder') {
-            document.getElementById('bankContentArea').style.display = 'none';
-            document.getElementById('bankFolderArea').style.display = 'block';
-            return;
-        }
-
-        document.getElementById('bankContentArea').style.display = 'block';
-        document.getElementById('bankFolderArea').style.display = 'none';
-
         const query = document.getElementById('searchInput').value.toLowerCase();
-        const terms = await dbGet(STORE_WORD_BANKS, currentBankNodeId) || [];
+        const terms = currentWordBankName ? await getWordBank(currentWordBankName) : [];
         const filtered = terms.filter(t => t.chinese.includes(query) || t.english.toLowerCase().includes(query));
-        
         document.getElementById('searchBadge').textContent = filtered.length;
         const container = document.getElementById('searchListContainer');
         if (filtered.length === 0) {
             container.innerHTML = '<div class="empty-placeholder">🔎 无匹配术语</div>';
             return;
         }
-
         container.innerHTML = filtered.map((t,i) => 
-            `<div class="pair-item">
-                <span class="pair-index">${i+1}</span>
-                <div class="pair-content"><span class="pair-chinese">${t.chinese}</span><span class="pair-english">${t.english}</span></div>
-                <div class="pair-actions">
-                    <button class="btn-icon edit-btn" data-cn="${t.chinese}">✏️</button>
-                    <button class="btn-icon del-btn" data-cn="${t.chinese}">🗑️</button>
-                </div>
-            </div>`
+            `<div class="pair-item"><span class="pair-index">${i+1}</span><div class="pair-content"><span class="pair-chinese">${t.chinese}</span><span class="pair-english">${t.english}</span></div></div>`
         ).join('');
-
-        container.querySelectorAll('.del-btn').forEach(b => b.onclick = async (e) => {
-            const cn = e.currentTarget.dataset.cn;
-            showConfirm(`确定删除术语「${cn}」？`, async () => {
-                let tList = await dbGet(STORE_WORD_BANKS, currentBankNodeId);
-                tList = tList.filter(x => x.chinese !== cn);
-                await dbSet(STORE_WORD_BANKS, currentBankNodeId, tList);
-                renderSearchResults();
-            });
-        });
-
-        container.querySelectorAll('.edit-btn').forEach(b => b.onclick = async (e) => {
-            const oldCn = e.currentTarget.dataset.cn;
-            let tList = await dbGet(STORE_WORD_BANKS, currentBankNodeId);
-            const target = tList.find(x => x.chinese === oldCn);
-            if(!target) return;
-
-            showEditTermModal(target.chinese, target.english, async (newCn, newEn) => {
-                target.chinese = newCn; target.english = newEn;
-                await dbSet(STORE_WORD_BANKS, currentBankNodeId, tList);
-                await syncTermUpdateToDecks(oldCn, newCn, newEn);
-                renderSearchResults();
-            });
-        });
     }
 
-    document.getElementById('wordBankSelect').onchange = (e) => { currentBankNodeId = e.target.value; renderSearchResults(); };
-    document.getElementById('searchInput').oninput = renderSearchResults;
-
-    document.getElementById('newWordBankBtn').onclick = async () => {
-        const tree = await getTree(STORE_WORD_BANKS);
-        const currNode = tree.find(n => n.id === currentBankNodeId);
-        const parentId = currNode ? (currNode.type === 'folder' ? currNode.id : currNode.parentId) : null;
-        
-        showCreateNodeModal('在当前目录下新建', async (type, name) => {
-            const newId = genId();
-            tree.push({ id: newId, type, parentId, name });
-            if(type === 'bank') await dbSet(STORE_WORD_BANKS, newId, []);
-            await saveTree(STORE_WORD_BANKS, tree);
-            currentBankNodeId = newId;
-            await refreshWordBankSelect();
-        });
-    };
-
-    // 修复：添加了缺乏选择时的阻断和弹窗提示，防止死机感
-    document.getElementById('deleteWordBankBtn').onclick = async () => {
-        if (!currentBankNodeId) return showToast('请先选择要删除的库或文件夹');
-        const tree = await getTree(STORE_WORD_BANKS);
-        const node = tree.find(n => n.id === currentBankNodeId);
-        if(!node) return;
-        const msg = node.type === 'folder' ? `警告：确定要删除文件夹「${node.name}」及其内部所有子文件夹和词库吗？` : `确定删除词库「${node.name}」？`;
-        
-        showConfirm(msg, async () => {
-            await deleteNodeRecursive(STORE_WORD_BANKS, tree, currentBankNodeId);
-            await saveTree(STORE_WORD_BANKS, tree);
-            currentBankNodeId = null;
-            await refreshWordBankSelect();
-            showToast('删除成功');
-        });
-    };
-
-    document.getElementById('exportWordBankBtn').onclick = async () => {
-        if (!currentBankNodeId) return showToast('请先选择一个词库进行导出');
-        const terms = await dbGet(STORE_WORD_BANKS, currentBankNodeId);
-        const tree = await getTree(STORE_WORD_BANKS);
-        const node = tree.find(n => n.id === currentBankNodeId);
-        if(!node || node.type === 'folder') return showToast('只能导出词库，无法导出文件夹');
-        const blob = new Blob([JSON.stringify({bankName: node.name, terms})], {type:'application/json'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${node.name}.json`; a.click();
-    };
-
-    // 修复：恢复了遗漏的 JSON 导入功能
-    document.getElementById('importWordBankBtn').onclick = () => document.getElementById('importFileInput').click();
-    document.getElementById('importFileInput').onchange = async (e) => {
-        const file = e.target.files[0]; if(!file) return;
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            try {
-                const data = JSON.parse(ev.target.result);
-                const terms = data.terms || [];
-                let name = data.bankName || '导入词库';
-                const tree = await getTree(STORE_WORD_BANKS);
-                const newId = genId();
-                tree.push({ id: newId, type: 'bank', parentId: null, name: name });
-                await dbSet(STORE_WORD_BANKS, newId, terms);
-                await saveTree(STORE_WORD_BANKS, tree);
-                currentBankNodeId = newId;
-                await refreshWordBankSelect();
-                showToast(`✅ 导入词库「${name}」成功`);
-            } catch (ex) { showToast('文件格式错误'); }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-    };
-
-    document.getElementById('importToDeckBtn').onclick = async () => {
-        if (!currentBankNodeId) return showToast('请先选择要导入的词库');
-        const dTree = await getTree(STORE_CARD_DECKS);
-        if (dTree.length === 0) return showToast('请先前往"记忆复习"创建卡库');
-        
-        const overlay = document.createElement('div'); overlay.className='confirm-overlay';
-        let options = buildTreeSelectHTML(dTree, null, 0, true);
-        overlay.innerHTML = `<div class="confirm-dialog"><p>选择目标卡库</p><select id="targetSelect" class="confirm-input">${options}</select><div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
-        document.body.appendChild(overlay);
-        
-        overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
-        overlay.querySelector('.ok').onclick = async ()=> {
-            const deckId = overlay.querySelector('#targetSelect').value;
-            overlay.remove();
-            const wordTerms = await dbGet(STORE_WORD_BANKS, currentBankNodeId) || [];
-            const deck = await dbGet(STORE_CARD_DECKS, deckId);
-            if(!deck) return;
+    async function importWordBankToDeck() {
+        if (!currentWordBankName) return showToast('请先选择词库');
+        const deckNames = await getDeckNames();
+        if (deckNames.length === 0) return showToast('请先创建卡库');
+        showSelection('选择目标卡库', deckNames, async (deckName) => {
+            const wordTerms = await getWordBank(currentWordBankName);
+            const deck = await getDeck(deckName);
             let added = 0;
             for (const t of wordTerms) {
                 if (!deck.terms.some(ex => ex.chinese === t.chinese)) {
@@ -666,74 +461,51 @@
                     added++;
                 }
             }
-            await dbSet(STORE_CARD_DECKS, deckId, deck);
-            showToast(`✅ 导入 ${added} 条新术语`);
-        };
-    };
+            await saveDeck(deckName, deck);
+            showToast(`✅ 导入 ${added} 条新术语到「${deckName}」`);
+        });
+    }
 
-    // ==================== 复习页 ====================
+    // ==================== 复习页 (修复版) ====================
     async function refreshDeckSelect() {
-        const tree = await getTree(STORE_CARD_DECKS);
+        const names = await getDeckNames();
         const sel = document.getElementById('deckSelect');
-        sel.innerHTML = buildTreeSelectHTML(tree) || '<option value="">无卡库，请新建</option>';
-        if (tree.length > 0 && !currentDeckNodeId) currentDeckNodeId = tree[0].id;
-        if (currentDeckNodeId && tree.some(n => n.id === currentDeckNodeId)) {
-            sel.value = currentDeckNodeId;
+        sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+        if (names.length === 0) {
+            sel.innerHTML = '<option value="">无卡库</option>';
+            currentDeckName = '';
         } else {
-            currentDeckNodeId = null;
+            if (!names.includes(currentDeckName)) currentDeckName = names[0];
+            sel.value = currentDeckName;
         }
         await loadDeckAndReview();
     }
 
     let reviewQueue = [];
     let deckData = null;
-    let sessionNewCardsCount = 0;
+    let sessionNewCardsCount = 0; // 本次会话已引入的新卡片数
 
     async function loadDeckAndReview() {
-        if (!currentDeckNodeId) {
+        if (!currentDeckName) {
             document.getElementById('reviewEmptyState').style.display='block';
-            document.getElementById('deckContentArea').style.display='block';
-            document.getElementById('deckFolderArea').style.display='none';
-            document.getElementById('cardStage').style.display='none';
-            document.getElementById('ratingButtons').style.display='none';
-            document.getElementById('reviewActionsRow').style.display='none';
             return;
         }
-        
-        const tree = await getTree(STORE_CARD_DECKS);
-        const node = tree.find(n => n.id === currentDeckNodeId);
-        
-        if (node && node.type === 'folder') {
-            document.getElementById('deckContentArea').style.display = 'none';
-            document.getElementById('deckFolderArea').style.display = 'block';
-            return;
-        }
-
-        document.getElementById('deckContentArea').style.display = 'block';
-        document.getElementById('deckFolderArea').style.display = 'none';
-
-        deckData = await dbGet(STORE_CARD_DECKS, currentDeckNodeId);
-        if(!deckData) return;
+        deckData = await getDeck(currentDeckName);
         const today = getToday();
+        // 重置每日计数（如果是新的一天）
         if (deckData.dailyMeta.date !== today) {
             deckData.dailyMeta = { date: today, newCardsIntroduced: 0, reviewsCompleted: 0 };
-            await dbSet(STORE_CARD_DECKS, currentDeckNodeId, deckData);
+            await saveDeck(currentDeckName, deckData);
         }
-        sessionNewCardsCount = deckData.dailyMeta.newCardsIntroduced;
-        
+        sessionNewCardsCount = deckData.dailyMeta.newCardsIntroduced; // 从已保存的计数开始
         buildQueue();
         updateDeckStats();
         if (reviewQueue.length === 0) {
-            if(deckData.terms.length === 0) {
-                document.getElementById('reviewEmptyState').style.display='block';
-                document.getElementById('reviewComplete').style.display='none';
-            } else {
-                document.getElementById('reviewEmptyState').style.display='none';
-                document.getElementById('reviewComplete').style.display='block';
-            }
+            document.getElementById('reviewEmptyState').style.display='block';
             document.getElementById('cardStage').style.display='none';
             document.getElementById('ratingButtons').style.display='none';
             document.getElementById('reviewActionsRow').style.display='none';
+            document.getElementById('reviewComplete').style.display='none';
         } else {
             document.getElementById('reviewEmptyState').style.display='none';
             document.getElementById('reviewComplete').style.display='none';
@@ -743,9 +515,10 @@
 
     function buildQueue() {
         const today = getToday();
-        const due = [], newCards = [];
+        const due = [];
         const seen = new Set();
         
+        // 收集到期卡片
         for (const [cn, state] of Object.entries(deckData.learningData)) {
             if (state.nextReview && state.nextReview <= today) {
                 due.push({chinese: cn, state, isNew: false});
@@ -753,7 +526,10 @@
             }
         }
         
+        // 收集新卡片（基于每日限额）
+        const newCards = [];
         const remainingSlots = Math.max(0, dailyNewCardsLimit - sessionNewCardsCount);
+        
         if (remainingSlots > 0) {
             for (const t of deckData.terms) {
                 if (newCards.length >= remainingSlots) break;
@@ -763,40 +539,17 @@
                 }
             }
         }
+        
         reviewQueue = [...due, ...newCards];
     }
 
     function updateDeckStats() {
-        if(!deckData) return;
         const dueCount = reviewQueue.filter(c => !c.isNew).length;
         const newCount = reviewQueue.filter(c => c.isNew).length;
         document.getElementById('statDue').textContent = `待复习 ${dueCount}`;
         document.getElementById('statNew').textContent = `新卡 ${newCount}`;
         document.getElementById('statDone').textContent = `已完成 ${deckData.dailyMeta.reviewsCompleted}`;
         document.getElementById('statTotal').textContent = `总计 ${deckData.terms.length}`;
-    }
-
-    function calcNextInterval(state, rating) {
-        const s = state ? {...state} : {interval:0, ease:2.5, repetitions:0, nextReview:'', totalReviews:0};
-        const isNew = !state || s.repetitions===0;
-        if (isNew) {
-            if (rating==='again') s.interval=0;
-            else if (rating==='hard') s.interval=1;
-            else if (rating==='good') { s.interval=1; s.repetitions=1; }
-            else if (rating==='easy') { s.interval=4; s.repetitions=1; }
-        } else {
-            if (rating==='again') { s.interval=0; s.ease=Math.max(1.3, s.ease-0.2); s.repetitions=0; }
-            else if (rating==='hard') { s.interval=Math.max(1, Math.round(s.interval*1.2)); s.ease=Math.max(1.3, s.ease-0.15); s.repetitions=0; }
-            else if (rating==='good') { s.interval=Math.round(s.interval*s.ease); s.repetitions++; }
-            else if (rating==='easy') { s.interval=Math.round(s.interval*s.ease*1.3); s.ease+=0.15; s.repetitions++; }
-        }
-        return s;
-    }
-
-    function formatInterval(days) {
-        if (days === 0) return "<1天";
-        if (days < 30) return `${days}天`;
-        return `${(days/30).toFixed(1)}月`;
     }
 
     function showCard() {
@@ -813,21 +566,10 @@
         document.getElementById('reviewActionsRow').style.display='flex';
         document.getElementById('cardInner').classList.remove('flipped');
         document.querySelectorAll('.rating-btn').forEach(b => b.disabled = true);
-        
         const term = deckData.terms.find(t => t.chinese === card.chinese);
         document.getElementById('cardChineseTerm').textContent = card.chinese;
         document.getElementById('cardEnglishTerm').textContent = term ? term.english : '—';
-        document.getElementById('cardHintInfo').textContent = card.state ? `已复习 ${card.state.totalReviews||0} 次，当前周期 ${card.state.interval} 天` : '✨ 首次学习';
-
-        const stAgain = calcNextInterval(card.state, 'again');
-        const stHard = calcNextInterval(card.state, 'hard');
-        const stGood = calcNextInterval(card.state, 'good');
-        const stEasy = calcNextInterval(card.state, 'easy');
-
-        document.querySelector('.rating-again').innerHTML = `重来<small>${formatInterval(stAgain.interval)}</small>`;
-        document.querySelector('.rating-hard').innerHTML = `困难<small>${formatInterval(stHard.interval)}</small>`;
-        document.querySelector('.rating-good').innerHTML = `良好<small>${formatInterval(stGood.interval)}</small>`;
-        document.querySelector('.rating-easy').innerHTML = `简单<small>${formatInterval(stEasy.interval)}</small>`;
+        document.getElementById('cardHintInfo').textContent = card.state ? `复习${card.state.totalReviews||0}次` : '新卡片';
     }
 
     function flipCard() {
@@ -839,13 +581,14 @@
         if (reviewQueue.length === 0) return;
         const card = reviewQueue.shift();
         
-        if (card.isNew && rating !== 'again' && rating !== 'bury') {
-            sessionNewCardsCount++; deckData.dailyMeta.newCardsIntroduced = sessionNewCardsCount;
+        // 如果是新卡片且不是重来，增加新卡片计数
+        if (card.isNew && rating !== 'again' && rating !== 'bury' && rating !== 'delete') {
+            sessionNewCardsCount++;
+            deckData.dailyMeta.newCardsIntroduced = sessionNewCardsCount;
         }
         
         if (rating === 'again') {
             const newState = calcNextInterval(card.state, 'again');
-            newState.totalReviews = (newState.totalReviews||0)+1;
             deckData.learningData[card.chinese] = newState;
             reviewQueue.push({chinese: card.chinese, state: newState, isNew: false});
         } else if (rating === 'bury') {
@@ -854,95 +597,223 @@
             state.nextReview = tomorrow.toISOString().slice(0,10);
             deckData.learningData[card.chinese] = state;
             deckData.dailyMeta.reviewsCompleted++;
+        } else if (rating === 'delete') {
+            deckData.terms = deckData.terms.filter(t => t.chinese !== card.chinese);
+            delete deckData.learningData[card.chinese];
+            deckData.dailyMeta.reviewsCompleted++;
         } else {
             const newState = calcNextInterval(card.state, rating);
-            newState.totalReviews = (card.state?.totalReviews||0)+1;
-            const d = new Date(); d.setDate(d.getDate() + newState.interval);
-            newState.nextReview = d.toISOString().slice(0,10);
             deckData.learningData[card.chinese] = newState;
             deckData.dailyMeta.reviewsCompleted++;
         }
         
-        dbSet(STORE_CARD_DECKS, currentDeckNodeId, deckData).then(() => {
-            updateDeckStats(); showCard();
-        });
+        saveDeck(currentDeckName, deckData);
+        updateDeckStats();
+        showCard();
     }
 
-    document.getElementById('deckSelect').onchange = (e) => { currentDeckNodeId = e.target.value; loadDeckAndReview(); };
+    function calcNextInterval(state, rating) {
+        const s = state ? {...state} : {interval:0, ease:2.5, repetitions:0, nextReview:'', totalReviews:0};
+        s.totalReviews = (s.totalReviews||0)+1;
+        const isNew = !state || s.repetitions===0;
+        if (isNew) {
+            if (rating==='again') s.interval=0;
+            else if (rating==='hard') s.interval=1;
+            else if (rating==='good') { s.interval=1; s.repetitions=1; }
+            else if (rating==='easy') { s.interval=4; s.repetitions=1; }
+        } else {
+            if (rating==='again') { s.interval=0; s.ease=Math.max(1.3, s.ease-0.2); s.repetitions=0; }
+            else if (rating==='hard') { s.interval=Math.max(1, Math.round(s.interval*1.2)); s.ease=Math.max(1.3, s.ease-0.15); s.repetitions=0; }
+            else if (rating==='good') { s.interval=Math.round(s.interval*s.ease); s.repetitions++; }
+            else if (rating==='easy') { s.interval=Math.round(s.interval*s.ease*1.3); s.ease+=0.15; s.repetitions++; }
+        }
+        if (s.interval===0) s.nextReview = getToday();
+        else {
+            const d = new Date(); d.setDate(d.getDate()+s.interval);
+            s.nextReview = d.toISOString().slice(0,10);
+        }
+        return s;
+    }
 
-    document.getElementById('newDeckBtn').onclick = async () => {
-        const tree = await getTree(STORE_CARD_DECKS);
-        const currNode = tree.find(n => n.id === currentDeckNodeId);
-        const parentId = currNode ? (currNode.type === 'folder' ? currNode.id : currNode.parentId) : null;
-        
-        showCreateNodeModal('在当前目录下新建', async (type, name) => {
-            const newId = genId();
-            tree.push({ id: newId, type, parentId, name });
-            if(type === 'bank') await dbSet(STORE_CARD_DECKS, newId, {terms:[], learningData:{}, dailyMeta:{date:getToday(), newCardsIntroduced:0, reviewsCompleted:0}});
-            await saveTree(STORE_CARD_DECKS, tree);
-            currentDeckNodeId = newId;
-            await refreshDeckSelect();
-        });
-    };
-
-    document.getElementById('deleteDeckBtn').onclick = async () => {
-        if (!currentDeckNodeId) return showToast('请先选择要删除的卡库或文件夹');
-        const tree = await getTree(STORE_CARD_DECKS);
-        const node = tree.find(n => n.id === currentDeckNodeId);
-        if(!node) return;
-        const msg = node.type === 'folder' ? `警告：确定要删除文件夹「${node.name}」及其内部所有内容吗？` : `确定删除卡库「${node.name}」及学习数据？`;
-        
-        showConfirm(msg, async () => {
-            await deleteNodeRecursive(STORE_CARD_DECKS, tree, currentDeckNodeId);
-            await saveTree(STORE_CARD_DECKS, tree);
-            currentDeckNodeId = null;
-            await refreshDeckSelect();
-        });
-    };
-
-    document.getElementById('resetDeckProgressBtn').onclick = () => {
-        if(!currentDeckNodeId || !deckData) return showToast('请先选择要重置的卡库');
-        showConfirm('重置进度后所有卡片将变回新卡，确定继续吗？', async () => {
+    async function resetDeckProgress() {
+        if (!currentDeckName) return;
+        showConfirm('确定要重置当前卡库的学习进度吗？（保留术语）', async () => {
             deckData.learningData = {};
             deckData.dailyMeta = { date: getToday(), newCardsIntroduced: 0, reviewsCompleted: 0 };
             sessionNewCardsCount = 0;
-            await dbSet(STORE_CARD_DECKS, currentDeckNodeId, deckData);
-            showToast('进度已重置');
-            loadDeckAndReview();
+            await saveDeck(currentDeckName, deckData);
+            showToast('学习进度已重置');
+            await loadDeckAndReview();
         });
-    };
+    }
 
-    document.getElementById('cardStage').onclick = () => { if (reviewQueue.length && !document.getElementById('cardInner').classList.contains('flipped')) flipCard(); };
-    document.querySelectorAll('.rating-btn').forEach(b => b.onclick = (e) => { if (!e.currentTarget.disabled) rateCard(e.currentTarget.dataset.rating); });
-    document.getElementById('buryCardBtn').onclick = () => rateCard('bury');
-    document.getElementById('saveDailyLimitBtn').onclick = async () => {
-        dailyNewCardsLimit = parseInt(document.getElementById('dailyLimitInput').value) || 20;
-        await dbSet(STORE_SETTINGS, 'config', { dailyLimit: dailyNewCardsLimit });
-        showToast('已保存每日新卡上限');
-    };
-
-    // Tabs
+    // 事件绑定
     document.getElementById('tabExtract').onclick = () => switchTab('extract');
     document.getElementById('tabSearch').onclick = () => switchTab('search');
     document.getElementById('tabReview').onclick = () => switchTab('review');
+    document.getElementById('extractBtn').onclick = performExtract;
+    document.getElementById('clearBtn').onclick = () => { document.getElementById('inputText').value=''; currentExtractPairs=[]; renderExtractList(); };
+    document.getElementById('saveBtn').onclick = async () => {
+        if (currentExtractPairs.length===0) return showToast('没有可保存的术语');
+        const names = await getWordBankNames();
+        showSelection('选择目标词库', [...names, '【新建词库】'], async (sel) => {
+            if (sel === '【新建词库】') {
+                showConfirm('输入新词库名称', async (name) => {
+                    if (!name) return;
+                    const existing = await getWordBankNames();
+                    if (existing.includes(name)) return showToast('词库已存在');
+                    const terms = [];
+                    let added = 0;
+                    for (const p of currentExtractPairs) {
+                        if (!terms.some(t => t.chinese === p.chinese)) { terms.push(p); added++; }
+                    }
+                    await saveWordBank(name, terms);
+                    const all = await getWordBankNames();
+                    all.push(name); await saveWordBankNames(all);
+                    showToast(`✅ 已保存 ${added} 条到「${name}」`);
+                    currentWordBankName = name;
+                    await refreshWordBankSelect();
+                }, '新词库');
+            } else {
+                const terms = await getWordBank(sel);
+                let added = 0;
+                for (const p of currentExtractPairs) {
+                    if (!terms.some(t => t.chinese === p.chinese)) { terms.push(p); added++; }
+                }
+                await saveWordBank(sel, terms);
+                showToast(`✅ 已保存 ${added} 条到「${sel}」`);
+                currentWordBankName = sel;
+                await refreshWordBankSelect();
+            }
+        });
+    };
+    document.getElementById('newWordBankBtn').onclick = async () => {
+        showConfirm('新建词库名称', async (name) => {
+            const names = await getWordBankNames();
+            if (names.includes(name)) return showToast('词库已存在');
+            await saveWordBank(name, []);
+            names.push(name); await saveWordBankNames(names);
+            currentWordBankName = name;
+            await refreshWordBankSelect();
+        }, '新词库');
+    };
+    document.getElementById('deleteWordBankBtn').onclick = async () => {
+        if (!currentWordBankName) return;
+        showConfirm(`确定删除词库「${currentWordBankName}」及其所有术语吗？`, async () => {
+            await deleteWordBank(currentWordBankName);
+            currentWordBankName = '';
+            await refreshWordBankSelect();
+            showToast('词库已删除');
+        });
+    };
+    document.getElementById('wordBankSelect').onchange = async (e) => {
+        currentWordBankName = e.target.value;
+        await renderSearchResults();
+    };
+    document.getElementById('searchInput').oninput = () => renderSearchResults();
+    document.getElementById('importToDeckBtn').onclick = importWordBankToDeck;
+    document.getElementById('exportWordBankBtn').onclick = async () => {
+        if (!currentWordBankName) return;
+        const terms = await getWordBank(currentWordBankName);
+        const blob = new Blob([JSON.stringify({bankName: currentWordBankName, terms})], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${currentWordBankName}.json`; a.click();
+    };
+    document.getElementById('importWordBankBtn').onclick = () => document.getElementById('importFileInput').click();
+    document.getElementById('importFileInput').onchange = async (e) => {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                const terms = data.terms || [];
+                let name = data.bankName || '导入词库';
+                let names = await getWordBankNames();
+                if (names.includes(name)) name += '_'+Date.now();
+                await saveWordBank(name, terms);
+                names.push(name); await saveWordBankNames(names);
+                currentWordBankName = name;
+                await refreshWordBankSelect();
+                showToast(`导入词库「${name}」成功`);
+            } catch (ex) { showToast('文件格式错误'); }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
+
+    // 复习页事件
+    document.getElementById('newDeckBtn').onclick = async () => {
+        showConfirm('新建卡库名称', async (name) => {
+            const names = await getDeckNames();
+            if (names.includes(name)) return showToast('卡库已存在');
+            await saveDeck(name, {terms:[], learningData:{}, dailyMeta:{date:getToday(), newCardsIntroduced:0, reviewsCompleted:0}});
+            names.push(name); await saveDeckNames(names);
+            currentDeckName = name;
+            await refreshDeckSelect();
+        }, '新卡库');
+    };
+    document.getElementById('deleteDeckBtn').onclick = async () => {
+        if (!currentDeckName) return;
+        showConfirm(`删除卡库「${currentDeckName}」及其学习数据？`, async () => {
+            await deleteDeck(currentDeckName);
+            currentDeckName = '';
+            await refreshDeckSelect();
+        });
+    };
+    document.getElementById('resetDeckProgressBtn').onclick = resetDeckProgress;
+    document.getElementById('deckSelect').onchange = async (e) => {
+        currentDeckName = e.target.value;
+        await loadDeckAndReview();
+    };
+    document.getElementById('cardStage').onclick = () => { if (reviewQueue.length && !document.getElementById('cardInner').classList.contains('flipped')) flipCard(); };
+    document.querySelectorAll('.rating-btn').forEach(b => b.onclick = (e) => { if (!e.target.disabled) rateCard(e.target.dataset.rating); });
+    document.getElementById('buryCardBtn').onclick = () => rateCard('bury');
+    document.getElementById('deleteCardBtn').onclick = () => rateCard('delete');
+    document.getElementById('saveDailyLimitBtn').onclick = async () => {
+        const val = parseInt(document.getElementById('dailyLimitInput').value);
+        if (isNaN(val) || val<1) return;
+        dailyNewCardsLimit = val;
+        await saveSettings();
+        showToast('已保存每日新卡上限');
+    };
+    document.addEventListener('keydown', (e) => {
+        if (!document.getElementById('reviewPanel').classList.contains('active')) return;
+        if (reviewQueue.length===0) return;
+        if (e.key === ' ' && !document.getElementById('cardInner').classList.contains('flipped')) { e.preventDefault(); flipCard(); }
+        else if (document.getElementById('cardInner').classList.contains('flipped')) {
+            if (e.key==='1') rateCard('again');
+            else if (e.key==='2') rateCard('hard');
+            else if (e.key==='3') rateCard('good');
+            else if (e.key==='4') rateCard('easy');
+            else if (e.key==='b') rateCard('bury');
+        }
+    });
 
     function switchTab(tab) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         if (tab==='extract') {
-            document.getElementById('tabExtract').classList.add('active'); document.getElementById('extractPanel').classList.add('active');
+            document.getElementById('tabExtract').classList.add('active');
+            document.getElementById('extractPanel').classList.add('active');
         } else if (tab==='search') {
-            document.getElementById('tabSearch').classList.add('active'); document.getElementById('searchPanel').classList.add('active'); refreshWordBankSelect();
+            document.getElementById('tabSearch').classList.add('active');
+            document.getElementById('searchPanel').classList.add('active');
+            refreshWordBankSelect();
         } else {
-            document.getElementById('tabReview').classList.add('active'); document.getElementById('reviewPanel').classList.add('active'); refreshDeckSelect();
+            document.getElementById('tabReview').classList.add('active');
+            document.getElementById('reviewPanel').classList.add('active');
+            refreshDeckSelect();
         }
     }
 
     window.onload = async () => {
         await openDB();
-        await recoverDataFromV4(); // 后台全自动提取旧版数据
         await loadSettings();
+        await checkAndMigrateOldData();
+        const wbNames = await getWordBankNames();
+        if (wbNames.length) currentWordBankName = wbNames[0];
         await refreshWordBankSelect();
+        const dNames = await getDeckNames();
+        if (dNames.length) currentDeckName = dNames[0];
         await refreshDeckSelect();
     };
 })();
