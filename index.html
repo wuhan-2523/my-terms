@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>中英术语库 · 多库管理 (V4.5 历史迁移)</title>
+    <title>中英术语库 · 多库管理 (V4.6 修复新卡计数)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #f0f4fb; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px 40px; margin: 0; }
@@ -87,7 +87,7 @@
         <button class="tab-btn" id="tabReview">🧠 记忆复习</button>
     </div>
 
-    <!-- 迁移提示区（动态插入） -->
+    <!-- 迁移提示区 -->
     <div id="migrationArea"></div>
 
     <!-- 提取面板 -->
@@ -304,18 +304,12 @@
 
     // ==================== 历史数据迁移 ====================
     async function checkAndMigrateOldData() {
-        // 检查是否已迁移过
         if (localStorage.getItem(MIGRATION_FLAG) === 'done') return;
-
         const oldTerms = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || 'null');
         const oldLearning = JSON.parse(localStorage.getItem(OLD_LEARNING_KEY) || 'null');
         const oldMeta = JSON.parse(localStorage.getItem(OLD_META_KEY) || 'null');
-
-        if (!oldTerms && !oldLearning) return; // 无旧数据
-
+        if (!oldTerms && !oldLearning) return;
         const migrationDiv = document.getElementById('migrationArea');
-        
-        // 构建迁移提示
         let html = '<div class="migration-dialog"><h3>📦 检测到旧版本数据</h3>';
         if (oldTerms && Array.isArray(oldTerms) && oldTerms.length > 0) {
             html += `<p>📚 旧术语库：<strong>${oldTerms.length}</strong> 条术语</p>`;
@@ -332,18 +326,14 @@
         }
         html += '<button class="btn btn-danger btn-small" id="deleteOldDataBtn">🗑️ 删除旧数据</button>';
         html += '</div><small style="color:#6b7280; margin-top:8px; display:block;">数据保存在 localStorage，导入后可安全删除。</small></div>';
-        
         migrationDiv.innerHTML = html;
 
-        // 绑定事件
         document.getElementById('migrateTermsBtn')?.addEventListener('click', async () => {
             const terms = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || '[]');
             showConfirm('为旧术语库命名（将作为新词库名称）', async (name) => {
                 const names = await getWordBankNames();
                 let finalName = name;
-                if (names.includes(name)) {
-                    finalName = name + '_' + Date.now().toString().slice(-4);
-                }
+                if (names.includes(name)) finalName = name + '_' + Date.now().toString().slice(-4);
                 await saveWordBank(finalName, terms.filter(t => t && t.chinese));
                 const allNames = await getWordBankNames();
                 allNames.push(finalName);
@@ -362,9 +352,7 @@
             showConfirm('为旧学习记录命名（将作为新卡库名称）', async (name) => {
                 const deckNames = await getDeckNames();
                 let finalName = name;
-                if (deckNames.includes(name)) {
-                    finalName = name + '_' + Date.now().toString().slice(-4);
-                }
+                if (deckNames.includes(name)) finalName = name + '_' + Date.now().toString().slice(-4);
                 const deckData = {
                     terms: terms.filter(t => t && t.chinese).map(t => ({chinese: t.chinese, english: t.english})),
                     learningData: learning,
@@ -478,7 +466,7 @@
         });
     }
 
-    // 复习页
+    // ==================== 复习页 (修复版) ====================
     async function refreshDeckSelect() {
         const names = await getDeckNames();
         const sel = document.getElementById('deckSelect');
@@ -495,6 +483,7 @@
 
     let reviewQueue = [];
     let deckData = null;
+    let sessionNewCardsCount = 0; // 本次会话已引入的新卡片数
 
     async function loadDeckAndReview() {
         if (!currentDeckName) {
@@ -503,10 +492,12 @@
         }
         deckData = await getDeck(currentDeckName);
         const today = getToday();
+        // 重置每日计数（如果是新的一天）
         if (deckData.dailyMeta.date !== today) {
             deckData.dailyMeta = { date: today, newCardsIntroduced: 0, reviewsCompleted: 0 };
             await saveDeck(currentDeckName, deckData);
         }
+        sessionNewCardsCount = deckData.dailyMeta.newCardsIntroduced; // 从已保存的计数开始
         buildQueue();
         updateDeckStats();
         if (reviewQueue.length === 0) {
@@ -526,31 +517,37 @@
         const today = getToday();
         const due = [];
         const seen = new Set();
+        
+        // 收集到期卡片
         for (const [cn, state] of Object.entries(deckData.learningData)) {
             if (state.nextReview && state.nextReview <= today) {
                 due.push({chinese: cn, state, isNew: false});
                 seen.add(cn);
             }
         }
+        
+        // 收集新卡片（基于每日限额）
         const newCards = [];
-        const limit = Math.max(0, dailyNewCardsLimit - deckData.dailyMeta.newCardsIntroduced);
-        for (const t of deckData.terms) {
-            if (!seen.has(t.chinese) && !deckData.learningData[t.chinese]) {
-                newCards.push({chinese: t.chinese, state: null, isNew: true});
-                seen.add(t.chinese);
-                if (newCards.length >= limit) break;
+        const remainingSlots = Math.max(0, dailyNewCardsLimit - sessionNewCardsCount);
+        
+        if (remainingSlots > 0) {
+            for (const t of deckData.terms) {
+                if (newCards.length >= remainingSlots) break;
+                if (!seen.has(t.chinese) && !deckData.learningData[t.chinese]) {
+                    newCards.push({chinese: t.chinese, state: null, isNew: true});
+                    seen.add(t.chinese);
+                }
             }
         }
+        
         reviewQueue = [...due, ...newCards];
-        deckData.dailyMeta.newCardsIntroduced += newCards.length;
-        saveDeck(currentDeckName, deckData);
     }
 
     function updateDeckStats() {
-        const due = reviewQueue.filter(c => !c.isNew).length;
-        const newC = reviewQueue.filter(c => c.isNew).length;
-        document.getElementById('statDue').textContent = `待复习 ${due}`;
-        document.getElementById('statNew').textContent = `新卡 ${newC}`;
+        const dueCount = reviewQueue.filter(c => !c.isNew).length;
+        const newCount = reviewQueue.filter(c => c.isNew).length;
+        document.getElementById('statDue').textContent = `待复习 ${dueCount}`;
+        document.getElementById('statNew').textContent = `新卡 ${newCount}`;
         document.getElementById('statDone').textContent = `已完成 ${deckData.dailyMeta.reviewsCompleted}`;
         document.getElementById('statTotal').textContent = `总计 ${deckData.terms.length}`;
     }
@@ -583,6 +580,13 @@
     function rateCard(rating) {
         if (reviewQueue.length === 0) return;
         const card = reviewQueue.shift();
+        
+        // 如果是新卡片且不是重来，增加新卡片计数
+        if (card.isNew && rating !== 'again' && rating !== 'bury' && rating !== 'delete') {
+            sessionNewCardsCount++;
+            deckData.dailyMeta.newCardsIntroduced = sessionNewCardsCount;
+        }
+        
         if (rating === 'again') {
             const newState = calcNextInterval(card.state, 'again');
             deckData.learningData[card.chinese] = newState;
@@ -602,6 +606,7 @@
             deckData.learningData[card.chinese] = newState;
             deckData.dailyMeta.reviewsCompleted++;
         }
+        
         saveDeck(currentDeckName, deckData);
         updateDeckStats();
         showCard();
@@ -635,6 +640,7 @@
         showConfirm('确定要重置当前卡库的学习进度吗？（保留术语）', async () => {
             deckData.learningData = {};
             deckData.dailyMeta = { date: getToday(), newCardsIntroduced: 0, reviewsCompleted: 0 };
+            sessionNewCardsCount = 0;
             await saveDeck(currentDeckName, deckData);
             showToast('学习进度已重置');
             await loadDeckAndReview();
@@ -802,7 +808,6 @@
     window.onload = async () => {
         await openDB();
         await loadSettings();
-        // 先检测旧数据
         await checkAndMigrateOldData();
         const wbNames = await getWordBankNames();
         if (wbNames.length) currentWordBankName = wbNames[0];
