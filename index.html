@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-  <title>中英术语库 · 多级库管理 (V5)</title>
+  <title>中英术语库 · 多级库管理 (V5.1 修复选中+右键)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #f0f4fb; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px 40px; margin: 0; }
@@ -51,10 +51,10 @@
     .selector-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     .selector-row select { padding: 8px 12px; border-radius: 14px; border: 1px solid #dce5f0; background: white; font-family: inherit; font-size: 0.9rem; flex: 1; }
     .folder-tree { background: #f8fafd; border-radius: 20px; padding: 8px; margin-bottom: 12px; max-height: 200px; overflow-y: auto; border: 1px solid #e4ecf7; }
-    .folder-item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; cursor: pointer; font-size: 0.9rem; }
+    .folder-item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 12px; cursor: pointer; font-size: 0.9rem; user-select: none; transition: background 0.1s; }
     .folder-item:hover { background: #eef3fa; }
     .folder-item.selected { background: #dbeafe; font-weight: 600; }
-    .folder-item .icon { font-size: 1.1rem; }
+    .folder-item .icon { font-size: 1.1rem; flex-shrink: 0; }
     .folder-item .name { flex: 1; }
     .folder-actions { display: flex; gap: 4px; margin-left: auto; }
     .folder-actions button { background: transparent; border: none; cursor: pointer; font-size: 0.9rem; padding: 2px 6px; border-radius: 8px; }
@@ -82,6 +82,9 @@
     .rating-easy { background: #3b82f6; }
     .rating-interval { font-size: 0.65rem; opacity: 0.9; font-weight: 400; }
     .migration-dialog { background: #fef9e7; border: 2px solid #fcd34d; border-radius: 24px; padding: 20px; margin-bottom: 16px; }
+    .context-menu { position: fixed; background: white; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 6px; z-index: 1500; min-width: 120px; border: 1px solid #e4ecf7; }
+    .context-menu-item { padding: 10px 16px; cursor: pointer; border-radius: 12px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+    .context-menu-item:hover { background: #f0f7ff; }
   </style>
 </head>
 <body>
@@ -115,7 +118,7 @@
   <!-- 检索面板 -->
   <div class="panel" id="searchPanel">
     <h1>🔎 智能检索</h1>
-    <div class="subhead">管理词库文件夹，点击选中词库查看术语，可编辑/删除</div>
+    <div class="subhead">点击选中词库查看术语，右键可重命名</div>
     <div class="folder-tree" id="wordFolderTree"></div>
     <div class="selector-row">
       <button class="btn btn-small btn-secondary" id="newFolderBtn">📁 新建文件夹</button>
@@ -141,7 +144,7 @@
   <!-- 复习面板 -->
   <div class="panel" id="reviewPanel">
     <h1>🧠 间隔复习</h1>
-    <div class="subhead">管理卡库文件夹，选中卡库进行复习</div>
+    <div class="subhead">点击选中卡库进行复习，右键可重命名</div>
     <div class="folder-tree" id="deckFolderTree"></div>
     <div class="selector-row">
       <button class="btn btn-small btn-secondary" id="newDeckFolderBtn">📁 新建文件夹</button>
@@ -223,16 +226,14 @@
     });
   }
 
-  // 数据结构
   const WORD_TREE_KEY = 'wordFolderTree';
   const DECK_TREE_KEY = 'deckFolderTree';
   const SETTINGS_KEY = 'settings';
 
-  // 文件夹树节点: { id, name, type: 'folder'|'bank', children?: [], terms?: [], learningData?: {}, dailyMeta?: {} }
   let wordTree = { id: 'root', name: '词库根目录', type: 'folder', children: [] };
   let deckTree = { id: 'root', name: '卡库根目录', type: 'folder', children: [] };
   let dailyNewCardsLimit = 20;
-  let currentWordBankPath = null; // 当前选中的词库路径（id路径数组）
+  let currentWordBankPath = null;
   let currentDeckPath = null;
   let reviewQueue = [];
   let deckData = null;
@@ -241,7 +242,6 @@
   function getToday() { return new Date().toISOString().slice(0,10); }
   function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
-  // 树操作
   function findNode(tree, path) {
     let node = tree;
     for (const id of path) {
@@ -279,7 +279,6 @@
     await dbSet(SETTINGS_KEY, { dailyLimit: dailyNewCardsLimit });
   }
 
-  // UI工具
   function showToast(msg, dur=2000) {
     const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
     document.body.appendChild(t);
@@ -299,12 +298,53 @@
     };
     if (placeholder) setTimeout(()=> overlay.querySelector('#confirmInput')?.select(), 50);
   }
+  function showSelection(title, options, cb) {
+    const overlay = document.createElement('div'); overlay.className='confirm-overlay';
+    overlay.innerHTML = `<div class="confirm-dialog"><p>${title}</p><select id="sel" style="width:100%;padding:10px;border-radius:12px;border:1px solid #dce5f0;margin-bottom:12px;">${options.map(o=>`<option>${o}</option>`).join('')}</select><div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
+    overlay.querySelector('.ok').onclick = ()=> { cb(overlay.querySelector('#sel').value); overlay.remove(); };
+  }
 
-  function renderFolderTree(containerId, tree, selectedPath, onSelect) {
+  function showContextMenu(x, y, items) {
+    // 移除旧菜单
+    document.querySelector('.context-menu')?.remove();
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'context-menu-item';
+      el.textContent = item.label;
+      el.onclick = () => {
+        menu.remove();
+        item.action();
+      };
+      menu.appendChild(el);
+    });
+    document.body.appendChild(menu);
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+        document.removeEventListener('contextmenu', closeMenu);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('click', closeMenu);
+      document.addEventListener('contextmenu', closeMenu);
+    }, 10);
+  }
+
+  function renderFolderTree(containerId, tree, selectedPath, onSelect, onContextMenu) {
     const container = document.getElementById(containerId);
+    if (!container) return;
+    
     function renderNode(node, path, depth) {
       const isSelected = selectedPath && selectedPath.length === path.length && selectedPath.every((id,i) => id === path[i]);
-      let html = `<div class="folder-item${isSelected?' selected':''}" data-path="${JSON.stringify(path)}" style="padding-left:${12+depth*16}px;">`;
+      const indent = 12 + depth * 16;
+      let html = `<div class="folder-item${isSelected?' selected':''}" data-path="${JSON.stringify(path).replace(/"/g, '&quot;')}" style="padding-left:${indent}px;" data-type="${node.type}">`;
       html += `<span class="icon">${node.type==='folder'?'📁':'📚'}</span>`;
       html += `<span class="name">${node.name}</span>`;
       html += `</div>`;
@@ -315,11 +355,29 @@
       }
       return html;
     }
+    
     container.innerHTML = renderNode(tree, [tree.id], 0);
+    
     container.querySelectorAll('.folder-item').forEach(el => {
-      el.addEventListener('click', () => {
-        const path = JSON.parse(el.dataset.path);
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const path = JSON.parse(el.dataset.path.replace(/&quot;/g, '"'));
         onSelect(path);
+      });
+      
+      el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const path = JSON.parse(el.dataset.path.replace(/&quot;/g, '"'));
+        const node = findNode(tree === wordTree ? wordTree : deckTree, path);
+        if (!node || path.length <= 1) return; // 不能重命名根目录
+        const items = [
+          { 
+            label: '✏️ 重命名', 
+            action: () => onContextMenu(path, node) 
+          }
+        ];
+        showContextMenu(e.clientX, e.clientY, items);
       });
     });
   }
@@ -377,7 +435,6 @@
       const node = getWordBankByPath(currentWordBankPath);
       const deleted = node.terms.splice(idx, 1)[0];
       await saveWordTree();
-      // 同步更新卡库
       await syncTermToDecks(deleted.chinese, null);
       renderSearchResults();
       showToast('已删除');
@@ -400,7 +457,6 @@
     });
   }
 
-  // 同步术语到所有卡库
   async function syncTermToDecks(oldChinese, newTerm) {
     function syncNode(node) {
       if (node.type === 'bank' && node.terms) {
@@ -422,7 +478,6 @@
     }
     syncNode(deckTree);
     await saveDeckTree();
-    // 如果当前复习页打开且是当前卡库，刷新
     if (document.getElementById('reviewPanel').classList.contains('active') && currentDeckPath) {
       deckData = getDeckByPath(currentDeckPath);
       if (deckData) {
@@ -437,10 +492,62 @@
     }
   }
 
+  function renderWordTree() {
+    renderFolderTree('wordFolderTree', wordTree, currentWordBankPath, 
+      (path) => {
+        currentWordBankPath = path;
+        renderWordTree();
+        const node = getWordBankByPath(path);
+        if (node && node.type === 'bank') {
+          document.getElementById('searchInput').value = '';
+          renderSearchResults();
+        } else {
+          document.getElementById('searchListContainer').innerHTML = '<div class="empty-placeholder">📁 请选择一个词库</div>';
+          document.getElementById('searchBadge').textContent = '0';
+        }
+      },
+      async (path, node) => {
+        showConfirm(`重命名「${node.name}」为：`, async (newName) => {
+          node.name = newName;
+          await saveWordTree();
+          renderWordTree();
+          showToast('已重命名');
+        }, node.name);
+      }
+    );
+  }
+
   // 复习页
   function getDeckByPath(path) {
     return findNode(deckTree, path);
   }
+  function renderDeckTree() {
+    renderFolderTree('deckFolderTree', deckTree, currentDeckPath,
+      async (path) => {
+        currentDeckPath = path;
+        renderDeckTree();
+        const node = getDeckByPath(path);
+        if (node && node.type === 'bank') {
+          await loadDeckAndReview();
+        } else {
+          document.getElementById('reviewEmptyState').style.display='block';
+          document.getElementById('cardStage').style.display='none';
+          document.getElementById('ratingButtons').style.display='none';
+          document.getElementById('reviewActionsRow').style.display='none';
+          document.getElementById('reviewComplete').style.display='none';
+        }
+      },
+      async (path, node) => {
+        showConfirm(`重命名「${node.name}」为：`, async (newName) => {
+          node.name = newName;
+          await saveDeckTree();
+          renderDeckTree();
+          showToast('已重命名');
+        }, node.name);
+      }
+    );
+  }
+
   async function loadDeckAndReview() {
     if (!currentDeckPath) {
       document.getElementById('reviewEmptyState').style.display='block';
@@ -517,7 +624,6 @@
     document.getElementById('cardChineseTerm').textContent = card.chinese;
     document.getElementById('cardEnglishTerm').textContent = term ? term.english : '—';
     document.getElementById('cardHintInfo').textContent = card.state ? `已复习${card.state.totalReviews||0}次` : '新卡片';
-    // 更新间隔显示
     updateIntervalDisplay(card.state);
   }
 
@@ -596,7 +702,6 @@
   document.getElementById('clearBtn').onclick = () => { document.getElementById('inputText').value=''; currentExtractPairs=[]; renderExtractList(); };
   document.getElementById('saveBtn').onclick = async () => {
     if (!currentExtractPairs.length) return showToast('无术语');
-    // 选择一个词库保存
     const banks = [];
     function collectBanks(node, path) {
       if (node.type === 'bank') banks.push({path, name: node.name});
@@ -604,8 +709,7 @@
     }
     collectBanks(wordTree, [wordTree.id]);
     if (!banks.length) return showToast('请先在检索页创建词库');
-    const options = banks.map(b => b.name);
-    showSelection('选择目标词库', options, async (selName) => {
+    showSelection('选择目标词库', banks.map(b => b.name), async (selName) => {
       const bank = banks.find(b => b.name === selName);
       if (!bank) return;
       const node = getWordBankByPath(bank.path);
@@ -621,15 +725,8 @@
       showToast(`✅ 已保存 ${added} 条`);
     });
   };
-  function showSelection(title, options, cb) {
-    const overlay = document.createElement('div'); overlay.className='confirm-overlay';
-    overlay.innerHTML = `<div class="confirm-dialog"><p>${title}</p><select id="sel" style="width:100%;padding:10px;border-radius:12px;border:1px solid #dce5f0;margin-bottom:12px;">${options.map(o=>`<option>${o}</option>`).join('')}</select><div class="confirm-buttons"><button class="btn btn-secondary cancel">取消</button><button class="btn btn-primary ok">确认</button></div></div>`;
-    document.body.appendChild(overlay);
-    overlay.querySelector('.cancel').onclick = ()=> overlay.remove();
-    overlay.querySelector('.ok').onclick = ()=> { cb(overlay.querySelector('#sel').value); overlay.remove(); };
-  }
 
-  // 检索页文件夹操作
+  // 检索页事件
   document.getElementById('newFolderBtn').onclick = async () => {
     showConfirm('新建文件夹名称', async (name) => {
       const parent = currentWordBankPath ? getWordBankByPath(currentWordBankPath) : wordTree;
@@ -716,7 +813,7 @@
     e.target.value = '';
   };
 
-  // 复习页文件夹操作
+  // 复习页事件
   document.getElementById('newDeckFolderBtn').onclick = async () => {
     showConfirm('新建文件夹名称', async (name) => {
       const parent = currentDeckPath ? getDeckByPath(currentDeckPath) : deckTree;
@@ -788,36 +885,6 @@
       else if (e.key==='b') rateCard('bury');
     }
   });
-
-  function renderWordTree() {
-    renderFolderTree('wordFolderTree', wordTree, currentWordBankPath, (path) => {
-      currentWordBankPath = path;
-      renderWordTree();
-      const node = getWordBankByPath(path);
-      if (node && node.type === 'bank') {
-        renderSearchResults();
-      } else {
-        document.getElementById('searchListContainer').innerHTML = '<div class="empty-placeholder">📁 请选择一个词库</div>';
-        document.getElementById('searchBadge').textContent = '0';
-      }
-    });
-  }
-  function renderDeckTree() {
-    renderFolderTree('deckFolderTree', deckTree, currentDeckPath, async (path) => {
-      currentDeckPath = path;
-      renderDeckTree();
-      const node = getDeckByPath(path);
-      if (node && node.type === 'bank') {
-        await loadDeckAndReview();
-      } else {
-        document.getElementById('reviewEmptyState').style.display='block';
-        document.getElementById('cardStage').style.display='none';
-        document.getElementById('ratingButtons').style.display='none';
-        document.getElementById('reviewActionsRow').style.display='none';
-        document.getElementById('reviewComplete').style.display='none';
-      }
-    });
-  }
 
   function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
